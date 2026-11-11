@@ -198,9 +198,16 @@ class CouiActivity : ComponentActivity() {
       1 -> {
        if (!detail && !settings) FeatureSearchBar(searchState)
        Spacer(Modifier.height(18.dp))
-       if("Theme Store".contains(query,true) || query.isBlank()) SurfaceCard { FeatureRow(R.drawable.ic_lucide_languages,"Theme Store","Поддерживаемое приложение",true) { focusManager.clearFocus(force=true); detail=true } }
-       else Text("Приложения не найдены",color=c.muted,fontSize=14.sp,modifier=Modifier.padding(12.dp))
-       Text("Другие приложения появятся после проверки совместимости.",fontSize=13.sp,lineHeight=19.sp,color=c.muted,modifier=Modifier.padding(14.dp))
+       val apps = listOf(
+        Triple("Theme Store", "com.heytap.themestore", R.drawable.ic_lucide_languages),
+        Triple("Theme Store для OnePlus", "com.oplus.themestore", R.drawable.ic_lucide_languages),
+       ).filter { query.isBlank() || it.first.contains(query, true) || it.second.contains(query, true) }
+       if(apps.isEmpty()) Text("Приложения не найдены",color=c.muted,fontSize=14.sp,modifier=Modifier.padding(12.dp))
+       else apps.forEach { (name, packageName, icon) ->
+        SurfaceCard { FeatureRow(icon,name,packageName,true) { focusManager.clearFocus(force=true); detail=true } }
+        Spacer(Modifier.height(10.dp))
+       }
+       Text("Профиль и словарь выбираются отдельно для каждого имени пакета и версии приложения.",fontSize=13.sp,lineHeight=19.sp,color=c.muted,modifier=Modifier.padding(14.dp))
       }
       else -> {
        SurfaceCard { Column(Modifier.fillMaxWidth().padding(22.dp),horizontalAlignment=Alignment.CenterHorizontally) { Image(painterResource(R.drawable.cobalt_logo),null,Modifier.size(72.dp).clip(RoundedCornerShape(20.dp)));Spacer(Modifier.height(12.dp));Text("Cobalt",fontSize=25.sp,fontWeight=FontWeight.SemiBold,color=c.text);Text("Перевод и адаптация ColorOS для китайского рынка",fontSize=13.sp,color=c.muted,textAlign=TextAlign.Center,modifier=Modifier.padding(top=5.dp));Text("Тестовая версия · 0.49",fontSize=12.sp,color=c.muted,modifier=Modifier.padding(top=8.dp)) } }
@@ -315,7 +322,7 @@ class CouiActivity : ComponentActivity() {
  }
  @Composable private fun Line() { if (!hideDividers) Box(Modifier.padding(start=16.dp,end=16.dp).fillMaxWidth().height(0.33.dp).background(LocalDesign.current.line)) }
  @Composable private fun FeatureRow(icon:Int,title:String,subtitle:String,appIcon:Boolean=false,click:()->Unit) {
-  val bitmap=if(appIcon) remember { runCatching { packageManager.getApplicationIcon("com.heytap.themestore").toBitmap(96,96).asImageBitmap() }.getOrNull() } else null
+  val bitmap=if(appIcon) remember(title,subtitle) { runCatching { packageManager.getApplicationIcon(subtitle).toBitmap(96,96).asImageBitmap() }.getOrNull() } else null
   val leading: (@Composable () -> Unit)? = if (bitmap!=null) ({ Image(bitmap,null,Modifier.size(32.dp)) }) else null
   CobaltPreferenceRow(title,subtitle,leading,click)
  }

@@ -20,11 +20,13 @@ import java.util.Iterator;
  */
 public final class DictionaryProvider extends ContentProvider {
  private static final String AUTHORITY = "app.cobalt.translate.dictionary";
- private static final String TARGET_PACKAGE = "com.heytap.themestore";
+ private static final String[] TARGET_PACKAGES = {"com.heytap.themestore", "com.oplus.themestore"};
  private static final String ENTRY_PATH = "/entries";
  private static final String PREFS = "local";
 
  @Override public boolean onCreate() { return getContext() != null; }
+
+ private static boolean isTarget(String name) { for (String target : TARGET_PACKAGES) if (target.equals(name)) return true; return false; }
 
  private void check(Uri uri) {
   Context context = getContext();
@@ -37,7 +39,7 @@ public final class DictionaryProvider extends ContentProvider {
   try {
    String caller = getCallingPackage();
    if (caller != null) {
-    if (TARGET_PACKAGE.equals(caller)
+    if (isTarget(caller)
         && context.getPackageManager().getApplicationInfo(caller, 0).uid == uid) return;
    } else {
     // Some framework-mediated calls do not expose a package attribution. In that case accept
@@ -45,7 +47,7 @@ public final class DictionaryProvider extends ContentProvider {
     String[] packages = context.getPackageManager().getPackagesForUid(uid);
     if (packages != null) {
      for (String name : packages) {
-      if (TARGET_PACKAGE.equals(name)
+      if (isTarget(name)
           && context.getPackageManager().getApplicationInfo(name, 0).uid == uid) return;
      }
     }
@@ -103,12 +105,12 @@ public final class DictionaryProvider extends ContentProvider {
   if (uid == Process.myUid()) return;
   try {
    String caller = getCallingPackage();
-   if (caller != null && TARGET_PACKAGE.equals(caller)
+   if (caller != null && isTarget(caller)
        && context.getPackageManager().getApplicationInfo(caller, 0).uid == uid) return;
    if (caller == null) {
     String[] packages = context.getPackageManager().getPackagesForUid(uid);
     if (packages != null) for (String name : packages) {
-     if (TARGET_PACKAGE.equals(name)
+     if (isTarget(name)
          && context.getPackageManager().getApplicationInfo(name, 0).uid == uid) return;
     }
    }
