@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown

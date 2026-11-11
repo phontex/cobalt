@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.screens
+package app.cobalt.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.layout.Layout
@@ -63,7 +63,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.cobalt.translate.R
-import app.cobalt.ui.ui.common.ColorOsSearchSurface
+import app.cobalt.ui.common.ColorOsSearchSurface
 import io.github.suqi8.coui.kmp.theme.COUITheme
 
 @Composable

@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 internal fun normalizedDragValue(value: Float, range: ClosedRange<Float>): Float {
     val span = range.endInclusive - range.start

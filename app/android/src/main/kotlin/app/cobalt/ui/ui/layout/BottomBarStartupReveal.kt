@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.layout
+package app.cobalt.ui.layout
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius

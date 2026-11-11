@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -32,7 +32,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import app.cobalt.ui.ui.layout.LocalChromeNativeBlurEnabled
+import app.cobalt.ui.layout.LocalChromeNativeBlurEnabled
 import io.github.suqi8.coui.kmp.theme.COUITheme
 
 /** ColorOS 17 toolbar button: one 40dp circle shared by material, state and motion. */

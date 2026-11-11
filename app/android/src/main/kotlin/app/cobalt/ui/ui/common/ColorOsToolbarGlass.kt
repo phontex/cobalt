@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver

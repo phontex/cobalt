@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.cobalt.ui.ui.common.ColorOs17Button
+import app.cobalt.ui.common.ColorOs17Button
 import app.cobalt.translate.R
 import java.text.DateFormat
 import java.util.Date

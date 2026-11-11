@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 internal fun colorOsSpotlightRadius(
     startRadius: Float,

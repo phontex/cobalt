@@ -6,9 +6,9 @@ import android.app.Activity
 import android.annotation.SuppressLint
 import io.github.suqi8.coui.kmp.basic.TextField as CouiTextField
 import io.github.suqi8.coui.kmp.basic.TextFieldMode
-import app.cobalt.ui.ui.common.CouiConfirmDialog
-import app.cobalt.ui.ui.common.ColorOs17Button
-import app.cobalt.ui.ui.common.AppIcons
+import app.cobalt.ui.common.CouiConfirmDialog
+import app.cobalt.ui.common.ColorOs17Button
+import app.cobalt.ui.common.AppIcons
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.*
 import io.github.suqi8.coui.kmp.basic.BasicComponent
 import androidx.compose.ui.semantics.Role
-import app.cobalt.ui.ui.common.ColorOsSwitch
+import app.cobalt.ui.common.ColorOsSwitch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items

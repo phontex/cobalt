@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.layout
+package app.cobalt.ui.layout
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
@@ -73,10 +73,10 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
-import app.cobalt.ui.ui.common.BottomTab
-import app.cobalt.ui.ui.LocalBottomBarContentOpacity
-import app.cobalt.ui.ui.common.DampedDragAnimation
-import app.cobalt.ui.ui.common.InteractiveHighlight
+import app.cobalt.ui.common.BottomTab
+import app.cobalt.ui.LocalBottomBarContentOpacity
+import app.cobalt.ui.common.DampedDragAnimation
+import app.cobalt.ui.common.InteractiveHighlight
 import io.github.suqi8.coui.kmp.theme.COUITheme
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop

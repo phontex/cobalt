@@ -17,12 +17,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.CubicBezierEasing
 import kotlinx.coroutines.launch
-import app.cobalt.ui.ui.common.AppIcons
-import app.cobalt.ui.ui.settings.ColorOsWindowDropdownPreference
+import app.cobalt.ui.common.AppIcons
+import app.cobalt.ui.settings.ColorOsWindowDropdownPreference
 import io.github.suqi8.coui.kmp.basic.DropdownDefaults
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import app.cobalt.ui.ui.screens.FeatureSearchBar
-import app.cobalt.ui.ui.common.ColorOsSwitch
+import app.cobalt.ui.screens.FeatureSearchBar
+import app.cobalt.ui.common.ColorOsSwitch
 import io.github.suqi8.coui.kmp.basic.BasicComponent
 import io.github.suqi8.coui.kmp.basic.Card as CouiCard
 import io.github.suqi8.coui.kmp.basic.CardDefaults
@@ -76,9 +76,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import app.cobalt.ui.ui.common.BottomTab
-import app.cobalt.ui.ui.layout.ColorOs17BottomNavigationBar
-import app.cobalt.ui.ui.layout.LiquidGlassBottomNavigationBar
+import app.cobalt.ui.common.BottomTab
+import app.cobalt.ui.layout.ColorOs17BottomNavigationBar
+import app.cobalt.ui.layout.LiquidGlassBottomNavigationBar
 import io.github.suqi8.coui.kmp.basic.NavigationItem
 import app.cobalt.translate.R
 

@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter

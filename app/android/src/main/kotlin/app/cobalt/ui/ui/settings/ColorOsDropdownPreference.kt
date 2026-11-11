@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.settings
+package app.cobalt.ui.settings
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -60,7 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.cobalt.ui.ui.common.ColorOsPopup
+import app.cobalt.ui.common.ColorOsPopup
 import io.github.suqi8.coui.kmp.basic.BasicComponent
 import io.github.suqi8.coui.kmp.basic.DropdownColors
 import io.github.suqi8.coui.kmp.basic.DropdownEntry

@@ -39,9 +39,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
-import app.cobalt.ui.ui.common.ColorOsTopBarButton
-import app.cobalt.ui.ui.common.CouiConfirmDialog
-import app.cobalt.ui.ui.layout.LocalChromeNativeBlurEnabled
+import app.cobalt.ui.common.ColorOsTopBarButton
+import app.cobalt.ui.common.CouiConfirmDialog
+import app.cobalt.ui.layout.LocalChromeNativeBlurEnabled
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

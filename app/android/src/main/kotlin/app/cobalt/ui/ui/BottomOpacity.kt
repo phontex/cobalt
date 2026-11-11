@@ -1,3 +1,3 @@
-package app.cobalt.ui.ui
+package app.cobalt.ui
 import androidx.compose.runtime.staticCompositionLocalOf
 internal val LocalBottomBarContentOpacity = staticCompositionLocalOf<() -> Float> { { 1f } }

@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.Canvas
@@ -36,7 +36,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
-import app.cobalt.ui.ui.layout.LocalChromeNativeBlurEnabled
+import app.cobalt.ui.layout.LocalChromeNativeBlurEnabled
 import io.github.suqi8.coui.kmp.theme.COUITheme
 import kotlin.math.abs
 import kotlin.math.exp

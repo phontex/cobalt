@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.layout
+package app.cobalt.ui.layout
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -57,9 +57,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import app.cobalt.ui.ui.common.ColorOsBottomBarMaterialView
-import app.cobalt.ui.ui.LocalBottomBarContentOpacity
-import app.cobalt.ui.ui.common.ColorOsTopBarSpotlightView
+import app.cobalt.ui.common.ColorOsBottomBarMaterialView
+import app.cobalt.ui.LocalBottomBarContentOpacity
+import app.cobalt.ui.common.ColorOsTopBarSpotlightView
 import androidx.dynamicanimation.animation.FloatValueHolder
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce

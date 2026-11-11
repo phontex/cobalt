@@ -8,8 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import app.cobalt.ui.ui.common.ColorOsTopBarButton
-import app.cobalt.ui.ui.layout.LocalChromeNativeBlurEnabled
+import app.cobalt.ui.common.ColorOsTopBarButton
+import app.cobalt.ui.layout.LocalChromeNativeBlurEnabled
 import io.github.suqi8.coui.kmp.icon.COUIIcons
 import io.github.suqi8.coui.kmp.icon.extended.Back
 

@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import android.graphics.drawable.Drawable
 import android.os.Build

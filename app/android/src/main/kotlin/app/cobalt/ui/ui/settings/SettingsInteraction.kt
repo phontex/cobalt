@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.settings
+package app.cobalt.ui.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

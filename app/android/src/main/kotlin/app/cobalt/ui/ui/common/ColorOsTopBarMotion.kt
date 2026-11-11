@@ -1,4 +1,4 @@
-package app.cobalt.ui.ui.common
+package app.cobalt.ui.common
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
