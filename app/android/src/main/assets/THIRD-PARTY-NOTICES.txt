@@ -1,0 +1,12 @@
+Cobalt
+
+Собственный код проекта распространяется по Apache-2.0.
+
+В составе используются компоненты с отдельными лицензиями:
+- AndroidLiquidGlass / Backdrop – Apache-2.0
+- Kyant Shapes – Apache-2.0
+- COUI – Apache-2.0
+- Lucide Icons – ISC
+- Phosphor Icons – MIT
+
+Полные тексты лицензий сторонних компонентов находятся в этом каталоге.

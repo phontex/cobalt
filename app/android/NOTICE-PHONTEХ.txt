@@ -1,7 +1,0 @@
-Phontex · Перевод — тестовая сборка 0.13
-Автор проекта: Phontex, https://t.me/elqaren
-
-В панели навигации используются адаптированные исходники ONextBox (GPL-3.0): исходный архив ONextBox-main предоставлен пользователем. В состав также входят AndroidLiquidGlass / Backdrop (Apache-2.0), Kyant Shapes (Apache-2.0) и COUI (Apache-2.0). Лицензии включены в APK и соответствующие каталоги исходников.
-Проект не является официальным продуктом OPPO.
-
-Значки Lucide Icons: лицензия ISC, файл LUCIDE-LICENSE.txt находится в APK.
