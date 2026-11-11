@@ -1,8 +1,8 @@
 {
   "product": "cobalt-app",
-  "latest_version": null,
-  "channel": "stable",
-  "download": null,
-  "sha256": null,
+  "latest_version": "0.56.0",
+  "channel": "experimental",
+  "download": "https://github.com/phontex/cobalt/releases/download/app-v0.56.0/Cobalt_COUI_test_v0.56_clean_final.apk",
+  "sha256": "4875a60c681a46cebac013ae8aad3baacb7da22ac3e2c239abee31d4d5490262",
   "min_platform_api": 1
 }
