@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "heytap-themestore-17.22.1",
+  "package": "com.heytap.themestore",
+  "version_name": "17.22.1",
+  "version_code": 1722010,
+  "certificate_sha256": null,
+  "translation_mode": "lsposed",
+  "analysis_catalog": "ThemeStore_com.heytap.themestore_17.22.1_localization_catalog",
+  "translation_status": "pending",
+  "features": {
+    "base": {"enabled": false, "mode": "awaiting_translation"},
+    "quick_search": {"enabled": false, "mode": "not_reviewed"},
+    "pet": {"enabled": false, "mode": "not_reviewed"}
+  },
+  "patch_policy": "never_apply_without_exact_identity"
+}
