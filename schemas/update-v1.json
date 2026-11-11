@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cobalt update manifest v1",
+  "type": "object",
+  "required": ["product", "latest_version", "channel"],
+  "properties": {
+    "product": {"type": "string"},
+    "latest_version": {"type": ["string", "null"]},
+    "channel": {"enum": ["stable", "beta", "experimental"]},
+    "download": {"type": ["string", "null", "object"]},
+    "sha256": {"type": ["string", "null"]},
+    "min_platform_api": {"type": "integer", "minimum": 1}
+  },
+  "additionalProperties": true
+}

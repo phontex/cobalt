@@ -1,0 +1,1 @@
+{"package":"com.heytap.themestore","version_name":"17.11.18","features":{"base":{"mode":"lsposed","enabled":true},"quick_search":{"mode":"disabled_until_review","enabled":false},"pet":{"mode":"lsposed","enabled":true}},"patch_policy":"never_apply_without_exact_sha256","notes":"Placeholder profile; no APK is bundled."}

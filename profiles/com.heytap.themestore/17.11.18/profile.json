@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "themestore-17.11.18",
+  "package": "com.heytap.themestore",
+  "version_name": "17.11.18",
+  "version_code": null,
+  "certificate_sha256": null,
+  "translation_mode": "lsposed",
+  "features": {
+    "base": {"enabled": true, "mode": "runtime"},
+    "quick_search": {"enabled": false, "mode": "disabled_until_review"},
+    "pet": {"enabled": false, "mode": "not_reviewed"}
+  },
+  "patch_policy": "never_apply_without_exact_identity"
+}

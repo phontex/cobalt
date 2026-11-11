@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "themestore",
+      "package": "com.heytap.themestore",
+      "versions": ["17.11.18"],
+      "path": "profiles/com.heytap.themestore/17.11.18/profile.json"
+    }
+  ]
+}

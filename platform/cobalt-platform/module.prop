@@ -1,0 +1,6 @@
+id=cobalt-platform
+name=Cobalt Platform
+version=0.1.0
+versionCode=1
+author=Phontex
+description=System component for Cobalt profiles, status and diagnostics; no bundled APK

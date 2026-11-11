@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cobalt profile v1",
+  "type": "object",
+  "required": ["schema_version", "id", "package", "features"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string"},
+    "package": {"type": "string", "pattern": "^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+$"},
+    "version_name": {"type": ["string", "null"]},
+    "version_code": {"type": ["integer", "null"]},
+    "certificate_sha256": {"type": ["string", "null"]},
+    "translation_mode": {"enum": ["lsposed", "resources", "hybrid"]},
+    "features": {"type": "object", "additionalProperties": {"type": "object"}},
+    "patch_policy": {"type": "string"}
+  },
+  "additionalProperties": false
+}
