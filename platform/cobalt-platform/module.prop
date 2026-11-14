@@ -1,6 +1,6 @@
 id=cobalt-platform
 name=Cobalt Platform
-version=0.1.0
-versionCode=1
+version=0.2.0
+versionCode=2
 author=Phontex
-description=System component for Cobalt profiles, status and diagnostics; no bundled APK
+description=System executor for Cobalt roles and explicit APK surgery; no bundled APK, no network

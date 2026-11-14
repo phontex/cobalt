@@ -1,56 +1,157 @@
 #!/system/bin/sh
-# Cobalt Platform 0.1: deterministic status/discovery backend. It never downloads or patches APKs.
+# Cobalt Platform 0.2 — privileged executor for Cobalt.
+#
+# Boundaries (deliberate, not temporary):
+#   * never downloads anything, never contains an APK, never rebuilds an application;
+#   * acts only on an explicit request that names a package, a version and a file;
+#   * every state-changing command writes a record and a log line before and after.
 set -u
+VERSION=0.2.0
+API=2
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
 STATUS="$ROOT/status.json"
-CONFIG="$ROOT/config.conf"
-mkdir -p "$ROOT" "$LOGDIR" "$ROOT/inbox" "$ROOT/cache" "$ROOT/backup" 2>/dev/null || true
-log(){
+ROLES="$ROOT/roles"
+RECORDS="$ROOT/records"
+mkdir -p "$ROOT" "$LOGDIR" "$ROOT/inbox" "$ROOT/cache" "$ROOT/backup" "$ROLES" "$RECORDS" 2>/dev/null || true
+
+log() {
   level="$1"; event="$2"; target="${3:-}"; message="${4:-}"
   ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
   printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$level" "$event" "$target" "$message" >> "$LOGDIR/platform.log"
   tail -n 5000 "$LOGDIR/platform.log" > "$LOGDIR/platform.log.tmp" 2>/dev/null && mv "$LOGDIR/platform.log.tmp" "$LOGDIR/platform.log" 2>/dev/null || true
 }
-json_escape(){ printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-find_apk(){ pm path "$1" 2>/dev/null | sed -n 's/^package://p' | head -n 1; }
-version_line(){ dumpsys package "$1" 2>/dev/null | grep -m1 'versionName=' | tr -d '\r'; }
-write_status(){
+json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+sha256_of() { (sha256sum "$1" 2>/dev/null || toybox sha256sum "$1" 2>/dev/null || busybox sha256sum "$1" 2>/dev/null) | cut -d" " -f1; }
+pkg_path() { pm path "$1" 2>/dev/null | sed -n 's/^package://p' | head -n 1; }
+pkg_version() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionName=' | sed 's/.*versionName=//' | tr -d ' \r'; }
+pkg_code() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionCode=' | sed 's/.*versionCode=//; s/[^0-9].*//' | tr -d ' \r'; }
+pkg_splits() { pm path "$1" 2>/dev/null | sed 's/^package://' | tr '\n' ';' | sed 's/;$//'; }
+
+write_status() {
   root_ok=0; idout=$(id 2>/dev/null || true); echo "$idout" | grep -q 'uid=0' && root_ok=1
-  printf '{"module_id":"cobalt-platform","module_version":"0.1.0","api_version":1,"root":%s,"enabled":true,"apk_patching":false,"network":false,"updated_at":"%s"}\n' "$root_ok" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" > "$STATUS"
+  printf '{"module_id":"cobalt-platform","module_version":"%s","api_version":%s,"root":%s,"enabled":true,"apk_patching":false,"network":false,"updated_at":"%s"}\n' \
+    "$VERSION" "$API" "$root_ok" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" > "$STATUS"
 }
-status(){
-  write_status
-  cat "$STATUS"
-  log info status '' 'status requested'
-}
-discover(){
-  target="${1:-}"; [ -n "$target" ] || { echo 'usage: cobalt-platform discover PACKAGE'; return 2; }
-  apk=$(find_apk "$target")
-  if [ -z "$apk" ]; then log warn discover "$target" 'package not installed'; echo '{"installed":false}'; return 1; fi
-  ver=$(version_line "$target")
-  splits=$(pm path "$target" 2>/dev/null | sed 's/^package://' | tr '\n' ';')
-  printf '{"installed":true,"package":"%s","base_apk":"%s","version":"%s","splits":"%s"}\n' "$(json_escape "$target")" "$(json_escape "$apk")" "$(json_escape "$ver")" "$(json_escape "$splits")"
+
+status() { write_status; cat "$STATUS"; log info status '' 'status requested'; }
+
+discover() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: discover PACKAGE"}'; return 2; }
+  apk=$(pkg_path "$target")
+  if [ -z "$apk" ]; then
+    log warn discover "$target" 'package not installed'
+    printf '{"installed":false,"package":"%s"}\n' "$(json_escape "$target")"; return 1
+  fi
+  size=$(stat -c %s "$apk" 2>/dev/null || echo 0)
+  printf '{"installed":true,"package":"%s","base_apk":"%s","version_name":"%s","version_code":"%s","bytes":%s,"splits":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$apk")" "$(json_escape "$(pkg_version "$target")")" \
+    "$(json_escape "$(pkg_code "$target")")" "$size" "$(json_escape "$(pkg_splits "$target")")"
   log info discover "$target" "found $apk"
 }
-apply_profile(){
-  target="${1:-}"; [ -n "$target" ] || { echo 'usage: cobalt-platform apply PACKAGE'; return 2; }
-  # Version-aware application is intentionally not enabled until a reviewed adapter exists.
-  if [ -z "$(find_apk "$target")" ]; then log warn apply "$target" 'package not installed'; return 1; fi
-  log warn apply "$target" 'no reviewed adapter applied; runtime/LSPosed handles text translation'
+
+# configure BASE64_JSON — the role the app wants Cobalt to take. Stored verbatim so the
+# next boot can act on it; the platform never interprets it into a command line.
+configure() {
+  payload="${1:-}"
+  [ -n "$payload" ] || { echo '{"error":"usage: configure BASE64_JSON"}'; return 2; }
+  json=$(printf '%s' "$payload" | (base64 -d 2>/dev/null || toybox base64 -d 2>/dev/null))
+  [ -n "$json" ] || { log error configure '' 'payload is not valid base64'; echo '{"error":"bad payload"}'; return 2; }
+  printf '%s' "$json" | grep -q '"package"' || { log error configure '' 'payload has no package'; echo '{"error":"no package"}'; return 2; }
+  printf '%s\n' "$json" > "$ROLES/active-profile.json" 2>/dev/null || { echo '{"error":"cannot write role"}'; return 1; }
+  pkg=$(printf '%s' "$json" | sed -n 's/.*"package"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  log info configure "$pkg" 'role stored'
+  echo '{"ok":true}'
+}
+
+role() {
+  if [ -f "$ROLES/active-profile.json" ]; then cat "$ROLES/active-profile.json"; else echo '{}'; fi
+}
+
+# mount_apk PACKAGE APK_FILE EXPECTED_VERSION — replace the installed APK on the running
+# system by bind-mounting a file the app prepared. Refuses on any mismatch.
+mount_apk() {
+  target="${1:-}"; apk="${2:-}"; want="${3:-}"
+  [ -n "$target" ] && [ -n "$apk" ] || { echo '{"error":"usage: mount PACKAGE APK_FILE EXPECTED_VERSION"}'; return 2; }
+  [ -f "$apk" ] || { log error mount "$target" "file not found: $apk"; echo '{"error":"apk not found"}'; return 2; }
+  base=$(pkg_path "$target")
+  [ -n "$base" ] || { log warn mount "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
+  actual=$(pkg_version "$target")
+  if [ -n "$want" ] && [ "$actual" != "$want" ]; then
+    log warn mount "$target" "version mismatch: $actual != $want"
+    echo '{"error":"version mismatch"}'; return 3
+  fi
+  digest=$(sha256_of "$apk")
+  ctx=$(ls -Z "$base" 2>/dev/null | awk '{print $1}')
+  umount -l "$base" 2>/dev/null
+  chmod 644 "$apk"
+  if [ -n "$ctx" ]; then chcon "$ctx" "$apk" 2>/dev/null || chcon u:object_r:system_file:s0 "$apk" 2>/dev/null; fi
+  if ! mount --bind "$apk" "$base"; then
+    log error mount "$target" 'bind mount failed'
+    echo '{"error":"mount failed"}'; return 4
+  fi
+  printf '{"package":"%s","target":"%s","apk":"%s","sha256":"%s","version_name":"%s","at":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$base")" "$(json_escape "$apk")" "$digest" \
+    "$(json_escape "$actual")" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" \
+    > "$RECORDS/$target.json"
+  log info mount "$target" "mounted $apk ($digest)"
+  am force-stop "$target" 2>/dev/null
+  echo '{"ok":true}'
+}
+
+umount_apk() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: umount PACKAGE"}'; return 2; }
+  base=$(pkg_path "$target")
+  [ -n "$base" ] || { echo '{"error":"not installed"}'; return 1; }
+  umount -l "$base" 2>/dev/null && log info umount "$target" "unmounted $base" || log warn umount "$target" 'nothing mounted'
+  rm -f "$RECORDS/$target.json" 2>/dev/null
+  am force-stop "$target" 2>/dev/null
+  echo '{"ok":true}'
+}
+
+verify_apk() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: verify PACKAGE"}'; return 2; }
+  base=$(pkg_path "$target")
+  [ -n "$base" ] || { echo '{"installed":false}'; return 1; }
+  mounted=false
+  grep -qF "$base" /proc/mounts 2>/dev/null && mounted=true
+  record="$RECORDS/$target.json"
+  digest=''
+  [ -f "$record" ] && digest=$(sed -n 's/.*"sha256":"\([^"]*\)".*/\1/p' "$record")
+  actual=''
+  [ -n "$digest" ] && actual=$(sha256_of "$base")
+  printf '{"package":"%s","target":"%s","mounted":%s,"record_sha256":"%s","current_sha256":"%s","matches":%s}\n' \
+    "$(json_escape "$target")" "$(json_escape "$base")" "$mounted" "$digest" "$actual" \
+    "$( [ -n "$digest" ] && [ "$digest" = "$actual" ] && echo true || echo false )"
+}
+
+logs() { cat "$LOGDIR/platform.log" 2>/dev/null || true; }
+clear_logs() { : > "$LOGDIR/platform.log"; log info clear_logs '' 'logs cleared'; }
+
+# Kept for compatibility: an adapter-based patch is not this component's job.
+apply_profile() {
+  target="${1:-}"
+  log warn apply "$target" 'no adapter applied; bind-mount surgery is requested explicitly via mount'
   echo 'no adapter applied'
   return 3
 }
-rollback(){ target="${1:-}"; log info rollback "$target" 'no APK mount to remove in this release'; echo 'nothing to rollback'; }
-logs(){ cat "$LOGDIR/platform.log" 2>/dev/null || true; }
-clear_logs(){ : > "$LOGDIR/platform.log"; log info clear_logs '' 'logs cleared'; }
+rollback() {
+  target="${1:-}"; log info rollback "$target" 'use umount to remove a bind mount'
+  echo 'nothing to rollback'
+}
+
 case "${1:-status}" in
- boot) write_status; log info boot '' 'Cobalt Platform started without APK or network';;
- status) status;;
- discover) discover "${2:-}";;
- apply) apply_profile "${2:-}";;
- rollback) rollback "${2:-}";;
- logs) logs;;
- clear-logs) clear_logs;;
- *) echo 'usage: cobalt-platform {status|discover PACKAGE|apply PACKAGE|rollback PACKAGE|logs|clear-logs}'; exit 2;;
+  boot) write_status; log info boot '' "Cobalt Platform $VERSION started without APK or network";;
+  status) status;;
+  discover) discover "${2:-}";;
+  configure) configure "${2:-}";;
+  role) role;;
+  mount) mount_apk "${2:-}" "${3:-}" "${4:-}";;
+  umount) umount_apk "${2:-}";;
+  verify) verify_apk "${2:-}";;
+  apply) apply_profile "${2:-}";;
+  rollback) rollback "${2:-}";;
+  logs) logs;;
+  clear-logs) clear_logs;;
+  *) echo 'usage: cobalt-platform {status|discover P|configure B64|role|mount P APK VER|umount P|verify P|logs|clear-logs}'; exit 2;;
 esac
