@@ -5,9 +5,38 @@
   "min_app_version_code": 66,
   "apps": [
     {
+      "package": "com.heytap.themestore",
+      "name": "Китайская версия Theme Store для OPPO",
+      "purpose": "Магазин тем, обоев и шрифтов OPPO",
+      "dictionaries": [
+        {
+          "language": "ru",
+          "language_name": "Русский",
+          "profile": "heytap-themestore-17.22.1",
+          "version": 1,
+          "label": "2026-11-14.1",
+          "content_id": "d3d68544",
+          "path": "dictionaries/com.heytap.themestore/17.22.1/ru.json",
+          "sha256": "d3d68544f46641f2b2227dbcd223ce5144e5a4d2f7abd034f0539831ff1c0411",
+          "bytes": 551844,
+          "entries": 4974,
+          "built": "2026-11-14"
+        }
+      ],
+      "profiles": [
+        {
+          "id": "heytap-themestore-17.22.1",
+          "version_name": "17.22.1",
+          "version_code": 1722010,
+          "path": "profiles/com.heytap.themestore/17.22.1/profile.json",
+          "sha256": ""
+        }
+      ]
+    },
+    {
       "package": "com.oplus.themestore",
-      "name": "Theme Store для OnePlus",
-      "purpose": "Магазин оформления для OnePlus",
+      "name": "Китайская версия Theme Store для OnePlus и Realme",
+      "purpose": "Магазин оформления для OnePlus и Realme",
       "dictionaries": [
         {
           "language": "ru",
@@ -20,12 +49,7 @@
           "sha256": "79c35e8e246aa27bf867eb4d5f9a10be7ff8e4bf7bef60bb9839debe26abcb24",
           "bytes": 485645,
           "entries": 4529,
-          "built": "2026-11-14",
-          "sources": {
-            "resources": 2341,
-            "dex": 1741,
-            "web": 447
-          }
+          "built": "2026-11-14"
         }
       ],
       "profiles": [
@@ -34,36 +58,6 @@
           "version_name": "EXP_17.11.20",
           "version_code": 1711200,
           "path": "profiles/com.oplus.themestore/EXP_17.11.20/profile.json",
-          "sha256": ""
-        }
-      ]
-    },
-    {
-      "package": "com.heytap.themestore",
-      "name": "Theme Store",
-      "purpose": "Магазин тем, обоев и шрифтов ColorOS",
-      "dictionaries": [
-        {
-          "language": "ru",
-          "language_name": "Русский",
-          "profile": "heytap-themestore-17.22.1",
-          "version": 0,
-          "label": "",
-          "content_id": "",
-          "path": "dictionaries/com.heytap.themestore/17.22.1/ru.json",
-          "sha256": "",
-          "bytes": 0,
-          "entries": 0,
-          "built": "",
-          "sources": {}
-        }
-      ],
-      "profiles": [
-        {
-          "id": "heytap-themestore-17.22.1",
-          "version_name": "17.22.1",
-          "version_code": 1722010,
-          "path": "profiles/com.heytap.themestore/17.22.1/profile.json",
           "sha256": ""
         }
       ]
