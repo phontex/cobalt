@@ -1,25 +1,38 @@
 # Cobalt Platform
 
-Minimal SukiSU/Magisk-compatible system component for Cobalt.
+Минимальный SukiSU/Magisk-совместимый системный компонент Cobalt.
 
-## Current scope
+## Возможности
 
-- Creates `/data/adb/cobalt-platform/{logs,inbox,cache,backup}`.
-- Writes a status marker.
-- Discovers installed package paths, version information and split APKs on explicit request.
-- Keeps deterministic per-package profiles.
-- Provides log/status/discovery commands.
-- Does **not** download files, contain APKs, patch arbitrary APKs, or apply an unreviewed adapter.
+- создаёт `/data/adb/cobalt-platform/{logs,inbox,cache,backup,roles,records}`;
+- `status` — состояние модуля (версия, API, root, `apk_patching`, `network`);
+- `supported` — спрашивает у Cobalt App список поддерживаемых приложений;
+- `plan PACKAGE` — спрашивает рецепт и **проверяет его** по белым спискам;
+- `discover PACKAGE` — путь к base.apk, версия, код версии, сплиты;
+- `export PACKAGE DEST` — копирует установленный APK туда, где прочитает приложение;
+- `configure BASE64` — сохраняет роль приложения в `roles/active-profile.json`;
+- `mount PACKAGE APK VERSION` — подмена APK через bind-mount, с проверкой пути и файла;
+- `umount PACKAGE` — откат, `verify PACKAGE` — проверка состояния;
+- `logs`, `clear-logs`.
 
-Text translation remains in the Cobalt LSPosed runtime and Cobalt App dictionary. APK/resource patching will only be enabled after a package/version-specific adapter is reviewed.
+## Границы
 
-## Commands
+Не скачивает файлы, не содержит APK, не собирает приложения, не применяет
+непроверенные данные. `mount` принимает файл только из хранилища приложения, кэша
+платформы или `/data/local/tmp`, и только если это настоящий zip-контейнер.
+
+## Токен
+
+Платформа не может читать каталог и настройки приложения. Приложение передаёт ей
+токен через `configure`; с этим токеном платформа запрашивает данные у
+`content://app.cobalt.translate.platform/…`. Без токена провайдер отказывает.
 
 ```sh
 cobalt-platform status
+cobalt-platform supported
+cobalt-platform plan com.heytap.themestore
 cobalt-platform discover com.heytap.themestore
-cobalt-platform apply com.heytap.themestore
-cobalt-platform rollback com.heytap.themestore
-cobalt-platform logs
-cobalt-platform clear-logs
+cobalt-platform mount com.heytap.themestore /data/local/tmp/base.apk 17.23.0beta1
+cobalt-platform verify com.heytap.themestore
+cobalt-platform umount com.heytap.themestore
 ```

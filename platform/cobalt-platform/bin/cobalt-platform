@@ -6,8 +6,8 @@
 #   * acts only on an explicit request that names a package, a version and a file;
 #   * every state-changing command writes a record and a log line before and after.
 set -u
-VERSION=0.4.0
-API=4
+VERSION=0.6.0
+API=6
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
 STATUS="$ROOT/status.json"
@@ -23,6 +23,25 @@ log() {
 }
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 sha256_of() { (sha256sum "$1" 2>/dev/null || toybox sha256sum "$1" 2>/dev/null || busybox sha256sum "$1" 2>/dev/null) | cut -d" " -f1; }
+# Only these locations may be written to or mounted from. The platform never accepts an
+# arbitrary path: an APK can only come from Cobalt App's own storage, the platform cache or
+# a temp directory, so a caller cannot talk it into replacing a system file.
+allowed_path() {
+  case "${1:-}" in
+    /data/data/app.cobalt.translate/*|/data/user/*/app.cobalt.translate/*) return 0;;
+    /data/adb/cobalt-platform/cache/*|/data/local/tmp/*) return 0;;
+    *) return 1;;
+  esac
+}
+# A file is only ever mounted if it really is a zip container with a manifest inside.
+looks_like_apk() {
+  [ -f "${1:-}" ] || return 1
+  size=$(stat -c %s "$1" 2>/dev/null || echo 0)
+  [ "$size" -gt 1024 ] || return 1
+  magic=$(head -c 2 "$1" 2>/dev/null)
+  [ "$magic" = "PK" ] || return 1
+  return 0
+}
 pkg_path() { pm path "$1" 2>/dev/null | sed -n 's/^package://p' | head -n 1; }
 pkg_version() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionName=' | sed 's/.*versionName=//' | tr -d ' \r'; }
 pkg_code() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionCode=' | sed 's/.*versionCode=//; s/[^0-9].*//' | tr -d ' \r'; }
@@ -74,10 +93,7 @@ role() {
 export_apk() {
   target="${1:-}"; dest="${2:-}"
   [ -n "$target" ] && [ -n "$dest" ] || { echo '{"error":"usage: export PACKAGE DEST"}'; return 2; }
-  case "$dest" in
-    /data/data/app.cobalt.translate/*|/data/user/*/app.cobalt.translate/*|/data/local/tmp/*) ;;
-    *) log warn export "$target" "refused destination: $dest"; echo '{"error":"destination not allowed"}'; return 2;;
-  esac
+  allowed_path "$dest" || { log warn export "$target" "refused destination: $dest"; echo '{"error":"destination not allowed"}'; return 2; }
   base=$(pkg_path "$target")
   [ -n "$base" ] || { log warn export "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
   dir=$(dirname "$dest")
@@ -98,7 +114,8 @@ export_apk() {
 mount_apk() {
   target="${1:-}"; apk="${2:-}"; want="${3:-}"
   [ -n "$target" ] && [ -n "$apk" ] || { echo '{"error":"usage: mount PACKAGE APK_FILE EXPECTED_VERSION"}'; return 2; }
-  [ -f "$apk" ] || { log error mount "$target" "file not found: $apk"; echo '{"error":"apk not found"}'; return 2; }
+  allowed_path "$apk" || { log warn mount "$target" "refused source: $apk"; echo '{"error":"source not allowed"}'; return 2; }
+  looks_like_apk "$apk" || { log error mount "$target" "not an APK: $apk"; echo '{"error":"not an apk"}'; return 2; }
   base=$(pkg_path "$target")
   [ -n "$base" ] || { log warn mount "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
   actual=$(pkg_version "$target")
@@ -168,10 +185,80 @@ rollback() {
   echo 'nothing to rollback'
 }
 
+# --- bridge to Cobalt App -------------------------------------------------------------
+# The platform never decides anything itself: it asks the app and validates the answer. The
+# token is the one the app handed over through `configure`; without it the bridge refuses.
+bridge_token() {
+  sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$ROLES/active-profile.json" 2>/dev/null | head -n1
+}
+bridge_query() {
+  uri="${1:-}"; tok=$(bridge_token)
+  { [ -n "$uri" ] && [ -n "$tok" ]; } || return 1
+  (content query --uri "$uri?token=$tok" 2>/dev/null || cmd content query --uri "$uri?token=$tok" 2>/dev/null) \
+    | sed -n 's/^Row: [0-9][0-9]* p=//p' | head -n1
+}
+supported() {
+  out=$(bridge_query "content://app.cobalt.translate.platform/supported")
+  if [ -z "$out" ]; then
+    log warn supported '' 'app did not answer'
+    echo '{"error":"app did not answer","hint":"run configure first"}'; return 1
+  fi
+  log info supported '' 'catalogue received'
+  printf '%s\n' "$out"
+}
+
+# Every field of a plan is validated here, against fixed lists. A plan can only ever ask for
+# the operations this release implements, only for whitelisted entries, and only from the
+# project's own repository.
+plan_valid() {
+  json="${1:-}"
+  printf '%s' "$json" | grep -q '"package"' || return 1
+  # only known operation types
+  for t in $(printf '%s' "$json" | grep -o '"type":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    case "$t" in replace_entry) ;; *) return 1;; esac
+  done
+  # only known entries inside the APK
+  for e in $(printf '%s' "$json" | grep -o '"entry":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    case "$e" in
+      resources.arsc) ;;
+      assets/*) case "$e" in *..*) return 1;; esac ;;
+      *) return 1;;
+    esac
+  done
+  # payloads only from the project repository over https
+  for u in $(printf '%s' "$json" | grep -o '"url":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    case "$u" in
+      https://raw.githubusercontent.com/phontex/cobalt/*) ;;
+      *) return 1;;
+    esac
+  done
+  # every payload must carry a full sha256
+  for h in $(printf '%s' "$json" | grep -o '"sha256":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    printf '%s' "$h" | grep -Eq '^[0-9a-f]{64}$' || return 1
+  done
+  return 0
+}
+plan() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: plan PACKAGE"}'; return 2; }
+  out=$(bridge_query "content://app.cobalt.translate.platform/plan/$target")
+  if [ -z "$out" ]; then
+    log warn plan "$target" 'app did not answer'
+    echo '{"error":"app did not answer"}'; return 1
+  fi
+  if ! plan_valid "$out"; then
+    log error plan "$target" 'plan rejected by validation'
+    echo '{"error":"plan rejected"}'; return 3
+  fi
+  log info plan "$target" 'plan accepted'
+  printf '%s\n' "$out"
+}
+
 case "${1:-status}" in
   boot) write_status; log info boot '' "Cobalt Platform $VERSION started without APK or network";;
   status) status;;
   discover) discover "${2:-}";;
+  supported) supported;;
+  plan) plan "${2:-}";;
   configure) configure "${2:-}";;
   role) role;;
   export) export_apk "${2:-}" "${3:-}";;
@@ -182,5 +269,5 @@ case "${1:-status}" in
   rollback) rollback "${2:-}";;
   logs) logs;;
   clear-logs) clear_logs;;
-  *) echo 'usage: cobalt-platform {status|discover P|export P DEST|configure B64|role|mount P APK VER|umount P|verify P|logs|clear-logs}'; exit 2;;
+  *) echo 'usage: cobalt-platform {status|supported|plan P|discover P|export P DEST|configure B64|role|mount P APK VER|umount P|verify P|logs|clear-logs}'; exit 2;;
 esac
