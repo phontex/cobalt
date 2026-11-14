@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cobalt catalog v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "product",
+    "apps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "product": {
+      "const": "cobalt-catalog"
+    },
+    "updated": {
+      "type": "string"
+    },
+    "min_app_version_code": {
+      "type": "integer"
+    },
+    "apps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "package",
+          "name"
+        ],
+        "properties": {
+          "package": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "dictionaries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "language",
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "language": {
+                  "type": "string"
+                },
+                "profile": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "entries": {
+                  "type": "integer"
+                },
+                "language_name": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "content_id": {
+                  "type": "string"
+                },
+                "bytes": {
+                  "type": "integer"
+                },
+                "built": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "path"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "version_name": {
+                  "type": "string"
+                },
+                "version_code": {
+                  "type": "integer"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
