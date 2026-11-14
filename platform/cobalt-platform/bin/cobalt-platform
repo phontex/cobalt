@@ -6,8 +6,8 @@
 #   * acts only on an explicit request that names a package, a version and a file;
 #   * every state-changing command writes a record and a log line before and after.
 set -u
-VERSION=0.2.0
-API=2
+VERSION=0.3.0
+API=3
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
 STATUS="$ROOT/status.json"
@@ -77,9 +77,12 @@ mount_apk() {
   base=$(pkg_path "$target")
   [ -n "$base" ] || { log warn mount "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
   actual=$(pkg_version "$target")
+  # The version is advisory: a different build is a warning, not a refusal. The caller decides,
+  # and the mismatch is recorded so it stays visible after the fact.
+  version_warning=''
   if [ -n "$want" ] && [ "$actual" != "$want" ]; then
-    log warn mount "$target" "version mismatch: $actual != $want"
-    echo '{"error":"version mismatch"}'; return 3
+    version_warning="version mismatch: installed $actual, built for $want"
+    log warn mount "$target" "$version_warning"
   fi
   digest=$(sha256_of "$apk")
   ctx=$(ls -Z "$base" 2>/dev/null | awk '{print $1}')

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Cobalt catalog v1",
+  "title": "Cobalt catalog v2",
   "type": "object",
   "required": [
     "schema_version",
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "product": {
       "const": "cobalt-catalog"
@@ -26,7 +26,8 @@
         "type": "object",
         "required": [
           "package",
-          "name"
+          "name",
+          "layers"
         ],
         "properties": {
           "package": {
@@ -38,33 +39,54 @@
           "purpose": {
             "type": "string"
           },
-          "dictionaries": {
+          "compatibility": {
+            "type": "object",
+            "properties": {
+              "policy": {
+                "enum": [
+                  "warn",
+                  "strict"
+                ]
+              },
+              "verified_versions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          },
+          "layers": {
             "type": "array",
             "items": {
               "type": "object",
               "required": [
-                "language",
-                "path",
-                "sha256"
+                "kind",
+                "served_by",
+                "language"
               ],
               "properties": {
+                "kind": {
+                  "enum": [
+                    "runtime",
+                    "apk_resources"
+                  ]
+                },
+                "served_by": {
+                  "enum": [
+                    "app",
+                    "platform"
+                  ]
+                },
+                "scope": {
+                  "type": "string",
+                  "description": "apk | server | apk+server"
+                },
                 "language": {
                   "type": "string"
-                },
-                "profile": {
-                  "type": "string"
-                },
-                "version": {
-                  "type": "integer"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "sha256": {
-                  "type": "string"
-                },
-                "entries": {
-                  "type": "integer"
                 },
                 "language_name": {
                   "type": "string"
@@ -72,47 +94,52 @@
                 "label": {
                   "type": "string"
                 },
+                "version": {
+                  "type": "integer"
+                },
                 "content_id": {
                   "type": "string"
-                },
-                "bytes": {
-                  "type": "integer"
-                },
-                "built": {
-                  "type": "string"
-                },
-                "sources": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          },
-          "profiles": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "id",
-                "path"
-              ],
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "version_name": {
-                  "type": "string"
-                },
-                "version_code": {
-                  "type": "integer"
                 },
                 "path": {
                   "type": "string"
                 },
                 "sha256": {
                   "type": "string"
+                },
+                "bytes": {
+                  "type": "integer"
+                },
+                "entries": {
+                  "type": "integer"
+                },
+                "verified_version": {
+                  "type": "string"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "entry": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    },
+                    "bytes": {
+                      "type": "integer"
+                    },
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
                 }
               }
             }
