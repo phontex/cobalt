@@ -6,8 +6,8 @@
 #   * acts only on an explicit request that names a package, a version and a file;
 #   * every state-changing command writes a record and a log line before and after.
 set -u
-VERSION=0.3.0
-API=3
+VERSION=0.4.0
+API=4
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
 STATUS="$ROOT/status.json"
@@ -66,6 +66,31 @@ configure() {
 
 role() {
   if [ -f "$ROLES/active-profile.json" ]; then cat "$ROLES/active-profile.json"; else echo '{}'; fi
+}
+
+# export PACKAGE DEST — copies the installed APK where the app can read it. The app cannot
+# read /data/app itself, and the platform must not hand out arbitrary files: the destination
+# is validated and the copy inherits the owner of the target directory.
+export_apk() {
+  target="${1:-}"; dest="${2:-}"
+  [ -n "$target" ] && [ -n "$dest" ] || { echo '{"error":"usage: export PACKAGE DEST"}'; return 2; }
+  case "$dest" in
+    /data/data/app.cobalt.translate/*|/data/user/*/app.cobalt.translate/*|/data/local/tmp/*) ;;
+    *) log warn export "$target" "refused destination: $dest"; echo '{"error":"destination not allowed"}'; return 2;;
+  esac
+  base=$(pkg_path "$target")
+  [ -n "$base" ] || { log warn export "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
+  dir=$(dirname "$dest")
+  mkdir -p "$dir" 2>/dev/null || { echo '{"error":"cannot create destination"}'; return 1; }
+  cp -f "$base" "$dest" 2>/dev/null || { log error export "$target" "copy failed: $dest"; echo '{"error":"copy failed"}'; return 1; }
+  chmod 644 "$dest" 2>/dev/null
+  owner=$(stat -c %u "$dir" 2>/dev/null)
+  [ -n "$owner" ] && chown "$owner" "$dest" 2>/dev/null
+  size=$(stat -c %s "$dest" 2>/dev/null || echo 0)
+  digest=$(sha256_of "$dest")
+  log info export "$target" "exported $size bytes to $dest"
+  printf '{"ok":true,"package":"%s","path":"%s","bytes":%s,"sha256":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$dest")" "$size" "$digest"
 }
 
 # mount_apk PACKAGE APK_FILE EXPECTED_VERSION — replace the installed APK on the running
@@ -149,6 +174,7 @@ case "${1:-status}" in
   discover) discover "${2:-}";;
   configure) configure "${2:-}";;
   role) role;;
+  export) export_apk "${2:-}" "${3:-}";;
   mount) mount_apk "${2:-}" "${3:-}" "${4:-}";;
   umount) umount_apk "${2:-}";;
   verify) verify_apk "${2:-}";;
@@ -156,5 +182,5 @@ case "${1:-status}" in
   rollback) rollback "${2:-}";;
   logs) logs;;
   clear-logs) clear_logs;;
-  *) echo 'usage: cobalt-platform {status|discover P|configure B64|role|mount P APK VER|umount P|verify P|logs|clear-logs}'; exit 2;;
+  *) echo 'usage: cobalt-platform {status|discover P|export P DEST|configure B64|role|mount P APK VER|umount P|verify P|logs|clear-logs}'; exit 2;;
 esac
