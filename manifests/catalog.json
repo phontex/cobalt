@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-15T16:09:31Z",
+  "updated": "2026-11-15T16:10:33Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -34,7 +34,7 @@
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Начальный импорт: 5315 записей, разделы и конфликты описаны в журнале"
+          "change_summary": "Обновление переводов"
         },
         {
           "kind": "resource_map",
@@ -60,7 +60,7 @@
           "bytes": 1771288,
           "entries": 6606,
           "changelog_path": "changes/index.json",
-          "change_summary": "Начальный импорт: 6606 записей, разделы и конфликты описаны в журнале"
+          "change_summary": "Обновление переводов"
         }
       ]
     },
@@ -93,7 +93,7 @@
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Начальный импорт: 4529 записей, разделы и конфликты описаны в журнале"
+          "change_summary": "Обновление переводов"
         },
         {
           "kind": "resource_map",
@@ -119,7 +119,7 @@
           "entries": 0,
           "available": false,
           "changelog_path": "changes/index.json",
-          "change_summary": "Начальный импорт: 0 записей, разделы и конфликты описаны в журнале"
+          "change_summary": "Обновление переводов"
         }
       ]
     }
