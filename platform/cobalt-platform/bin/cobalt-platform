@@ -6,8 +6,8 @@
 #   * acts only on an explicit request that names a package, a version and a file;
 #   * every state-changing command writes a record and a log line before and after.
 set -u
-VERSION=0.6.0
-API=6
+VERSION=0.7.0
+API=7
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
 STATUS="$ROOT/status.json"
@@ -109,6 +109,16 @@ export_apk() {
     "$(json_escape "$target")" "$(json_escape "$dest")" "$size" "$digest"
 }
 
+# Android gives the root shell its own mount namespace, while applications live in init's.
+# A bind mount done in the shell is invisible to every app, which is exactly why a mount could
+# look successful and change nothing. Every filesystem operation therefore goes through init.
+ns_init() {
+  if command -v nsenter >/dev/null 2>&1; then
+    nsenter -t 1 -m -- "$@"
+  else
+    "$@"
+  fi
+}
 # mount_apk PACKAGE APK_FILE EXPECTED_VERSION — replace the installed APK on the running
 # system by bind-mounting a file the app prepared. Refuses on any mismatch.
 mount_apk() {
@@ -128,10 +138,10 @@ mount_apk() {
   fi
   digest=$(sha256_of "$apk")
   ctx=$(ls -Z "$base" 2>/dev/null | awk '{print $1}')
-  umount -l "$base" 2>/dev/null
+  ns_init umount -l "$base" 2>/dev/null
   chmod 644 "$apk"
   if [ -n "$ctx" ]; then chcon "$ctx" "$apk" 2>/dev/null || chcon u:object_r:system_file:s0 "$apk" 2>/dev/null; fi
-  if ! mount --bind "$apk" "$base"; then
+  if ! ns_init mount --bind "$apk" "$base"; then
     log error mount "$target" 'bind mount failed'
     echo '{"error":"mount failed"}'; return 4
   fi
@@ -148,7 +158,7 @@ umount_apk() {
   target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: umount PACKAGE"}'; return 2; }
   base=$(pkg_path "$target")
   [ -n "$base" ] || { echo '{"error":"not installed"}'; return 1; }
-  umount -l "$base" 2>/dev/null && log info umount "$target" "unmounted $base" || log warn umount "$target" 'nothing mounted'
+  ns_init umount -l "$base" 2>/dev/null && log info umount "$target" "unmounted $base" || log warn umount "$target" 'nothing mounted'
   rm -f "$RECORDS/$target.json" 2>/dev/null
   am force-stop "$target" 2>/dev/null
   echo '{"ok":true}'
@@ -158,15 +168,21 @@ verify_apk() {
   target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: verify PACKAGE"}'; return 2; }
   base=$(pkg_path "$target")
   [ -n "$base" ] || { echo '{"installed":false}'; return 1; }
+  # The shell's own view is meaningless here: check what init sees.
+  target_inode=$(ns_init stat -c %i "$base" 2>/dev/null)
   mounted=false
-  grep -qF "$base" /proc/mounts 2>/dev/null && mounted=true
+  [ -f "$RECORDS/$target.json" ] && mounted=true
   record="$RECORDS/$target.json"
-  digest=''
-  [ -f "$record" ] && digest=$(sed -n 's/.*"sha256":"\([^"]*\)".*/\1/p' "$record")
+  digest=''; record_inode=''
+  if [ -f "$record" ]; then
+    digest=$(sed -n 's/.*"sha256":"\([^"]*\)".*/\1/p' "$record")
+    record_inode=$(sed -n 's/.*"inode":"\([^"]*\)".*/\1/p' "$record")
+  fi
+  [ -n "$record_inode" ] && [ "$record_inode" != "$target_inode" ] && mounted=false
   actual=''
   [ -n "$digest" ] && actual=$(sha256_of "$base")
-  printf '{"package":"%s","target":"%s","mounted":%s,"record_sha256":"%s","current_sha256":"%s","matches":%s}\n' \
-    "$(json_escape "$target")" "$(json_escape "$base")" "$mounted" "$digest" "$actual" \
+  printf '{"package":"%s","target":"%s","mounted":%s,"inode":%s,"record_sha256":"%s","current_sha256":"%s","matches":%s}\n' \
+    "$(json_escape "$target")" "$(json_escape "$base")" "$mounted" "${target_inode:-0}" "$digest" "$actual" \
     "$( [ -n "$digest" ] && [ "$digest" = "$actual" ] && echo true || echo false )"
 }
 

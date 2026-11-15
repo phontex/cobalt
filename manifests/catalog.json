@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "product": "cobalt-catalog",
-  "updated": "2026-11-14T00:00:00Z",
+  "updated": "2026-11-15T00:00:00Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -11,6 +11,7 @@
       "compatibility": {
         "policy": "warn",
         "verified_versions": [
+          "17.23.0beta1",
           "17.22.1"
         ],
         "note": "Перевод работает и на других версиях. Если вашей версии нет в списке проверенных, возможны непереведённые строки или смещения — переустановите перевод после обновления приложения."
@@ -41,7 +42,7 @@
           "language_name": "Русский",
           "label": "",
           "content_id": "",
-          "verified_version": "17.22.1",
+          "verified_version": "17.23.0beta1",
           "payload": {
             "path": "payloads/com.heytap.themestore/17.22.1/resources.arsc",
             "entry": "resources.arsc",
