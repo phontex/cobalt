@@ -3,6 +3,19 @@
   "entries": [
     {
       "date": "2026-11-15",
+      "path": "changes/2026-11-15-8ffc1657.md",
+      "summary": {
+        "files": 1,
+        "added": 1,
+        "changed": 0,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/server"
+        ]
+      }
+    },
+    {
+      "date": "2026-11-15",
       "path": "changes/2026-11-15-initial-import.md",
       "summary": {
         "files": 6,
@@ -19,16 +32,14 @@
   ],
   "latest": {
     "date": "2026-11-15",
-    "path": "changes/2026-11-15-initial-import.md",
+    "path": "changes/2026-11-15-8ffc1657.md",
     "summary": {
-      "files": 6,
-      "added": 11921,
+      "files": 1,
+      "added": 1,
       "changed": 0,
       "removed": 0,
       "sections": [
-        "com.heytap.themestore/app",
-        "com.heytap.themestore/platform",
-        "com.oplus.themestore/app"
+        "com.heytap.themestore/app/server"
       ]
     }
   }
