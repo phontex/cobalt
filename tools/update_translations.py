@@ -174,9 +174,10 @@ def update_catalog(layer_info, change_path, summary, stamp):
     catalog = read_json(CATALOG)
     catalog["schema_version"] = 3
     catalog["updated"] = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    previous = catalog.get("changelog", {}) if isinstance(catalog.get("changelog"), dict) else {}
     catalog["changelog"] = {
         "path": "changes/index.json",
-        "latest": change_path.relative_to(ROOT).as_posix() if change_path else catalog.get("changelog", {}).get("latest", ""),
+        "latest": change_path.relative_to(ROOT).as_posix() if change_path else previous.get("latest", ""),
         "updated": stamp,
     }
     for app in catalog.get("apps", []):
@@ -190,8 +191,9 @@ def update_catalog(layer_info, change_path, summary, stamp):
                     "kind": "runtime",
                     "path": info["path"], "sha256": info["sha256"], "bytes": info["bytes"],
                     "entries": info["entries"], "content_id": info["sha256"][:8],
-                    "available": True, "changelog_path": "changes/index.json",
-                    "change_summary": info["summary"],
+                    "available": True,
+                    "changelog_path": "changes/index.json",
+                    "change_summary": info["summary"] or layer.get("change_summary", ""),
                 })
             elif layer.get("served_by") == "platform":
                 info = layer_info[package]["platform"]
@@ -199,7 +201,8 @@ def update_catalog(layer_info, change_path, summary, stamp):
                     "kind": "resource_map", "path": info["path"], "entry": "resources.arsc",
                     "sha256": info["sha256"], "bytes": info["bytes"], "entries": info["entries"],
                     "content_id": info["sha256"][:8], "available": info["entries"] > 0,
-                    "changelog_path": "changes/index.json", "change_summary": info["summary"],
+                    "changelog_path": "changes/index.json",
+                    "change_summary": info["summary"] or layer.get("change_summary", ""),
                 })
                 # Keep the old payload shape populated for schema-2 readers, but it now points to text.
                 layer["payload"] = {"path": info["path"], "entry": "resources.arsc",
@@ -233,6 +236,10 @@ def main():
         text = f"Добавлено {summary['added']}, изменено {summary['changed']}, удалено {summary['removed']} записей"
         for package in info:
             for layer in info[package]: info[package][layer]["summary"] = text
+    elif not args.initial:
+        # A push that did not touch a translation must not erase the last real summary.
+        for package in info:
+            for layer in info[package]: info[package][layer]["summary"] = ""
     update_catalog(info, change_path, summary, stamp)
     print(json.dumps({"layers": info, "changelog": str(change_path) if change_path else None}, ensure_ascii=False, indent=2))
 
