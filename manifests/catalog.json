@@ -40,17 +40,18 @@
           "scope": "apk",
           "language": "ru",
           "language_name": "Русский",
-          "label": "",
+          "label": "2026-11-15.1",
           "content_id": "",
           "verified_version": "17.23.0beta1",
           "payload": {
-            "path": "payloads/com.heytap.themestore/17.22.1/resources.arsc",
+            "path": "payloads/com.heytap.themestore/17.23.0beta1/resources.arsc",
             "entry": "resources.arsc",
-            "sha256": "",
-            "bytes": 0,
-            "available": false
+            "sha256": "b66c4db8a0e827dbd9902b534555b42bd4b9b25adaff8273d4c20430728623bc",
+            "bytes": 5381268,
+            "available": true
           },
-          "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран."
+          "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран.",
+          "available": true
         }
       ]
     },
