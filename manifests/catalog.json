@@ -1,7 +1,7 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-15T00:00:00Z",
+  "updated": "2026-11-15T16:09:31Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -25,33 +25,42 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "d3d68544",
-          "path": "dictionaries/com.heytap.themestore/17.22.1/ru.json",
-          "sha256": "d3d68544f46641f2b2227dbcd223ce5144e5a4d2f7abd034f0539831ff1c0411",
-          "bytes": 551844,
-          "entries": 4974,
+          "content_id": "ef9b55be",
+          "path": "translations/com.heytap.themestore/app/ru.json",
+          "sha256": "ef9b55be32f84f2a3cd0e20a33515ee5796e63606ae8f725cee09c5e1d9c13be",
+          "bytes": 1440022,
+          "entries": 5315,
           "verified_version": "17.22.1",
           "available": true,
-          "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки."
+          "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
+          "changelog_path": "changes/index.json",
+          "change_summary": "Начальный импорт: 5315 записей, разделы и конфликты описаны в журнале"
         },
         {
-          "kind": "apk_resources",
+          "kind": "resource_map",
           "served_by": "platform",
           "scope": "apk",
           "language": "ru",
           "language_name": "Русский",
           "label": "2026-11-15.1",
-          "content_id": "",
+          "content_id": "8e95c386",
           "verified_version": "17.23.0beta1",
           "payload": {
-            "path": "payloads/com.heytap.themestore/17.23.0beta1/resources.arsc",
+            "path": "translations/com.heytap.themestore/platform/ru.json",
             "entry": "resources.arsc",
-            "sha256": "b66c4db8a0e827dbd9902b534555b42bd4b9b25adaff8273d4c20430728623bc",
-            "bytes": 5381268,
+            "sha256": "8e95c3865ed0811400746f13f8cdb3d2d06c1a6816ed1fb5b9d8a2d541db720c",
+            "bytes": 1771288,
             "available": true
           },
           "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран.",
-          "available": true
+          "available": true,
+          "path": "translations/com.heytap.themestore/platform/ru.json",
+          "entry": "resources.arsc",
+          "sha256": "8e95c3865ed0811400746f13f8cdb3d2d06c1a6816ed1fb5b9d8a2d541db720c",
+          "bytes": 1771288,
+          "entries": 6606,
+          "changelog_path": "changes/index.json",
+          "change_summary": "Начальный импорт: 6606 записей, разделы и конфликты описаны в журнале"
         }
       ]
     },
@@ -75,34 +84,49 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "79c35e8e",
-          "path": "dictionaries/com.oplus.themestore/EXP_17.11.20/ru.json",
-          "sha256": "79c35e8e246aa27bf867eb4d5f9a10be7ff8e4bf7bef60bb9839debe26abcb24",
-          "bytes": 485645,
+          "content_id": "e8d472b0",
+          "path": "translations/com.oplus.themestore/app/ru.json",
+          "sha256": "e8d472b026366a64434c1949d27d31993bc63192935f107cd6e4ba7035861188",
+          "bytes": 1035056,
           "entries": 4529,
           "verified_version": "EXP_17.11.20",
           "available": true,
-          "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки."
+          "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
+          "changelog_path": "changes/index.json",
+          "change_summary": "Начальный импорт: 4529 записей, разделы и конфликты описаны в журнале"
         },
         {
-          "kind": "apk_resources",
+          "kind": "resource_map",
           "served_by": "platform",
           "scope": "apk",
           "language": "ru",
           "language_name": "Русский",
           "label": "",
-          "content_id": "",
+          "content_id": "cfc6cf26",
           "verified_version": "EXP_17.11.20",
           "payload": {
-            "path": "payloads/com.oplus.themestore/EXP_17.11.20/resources.arsc",
+            "path": "translations/com.oplus.themestore/platform/ru.json",
             "entry": "resources.arsc",
-            "sha256": "",
-            "bytes": 0,
+            "sha256": "cfc6cf26650e73860053b6c789bceb7eb2ffdc7714928639279608eb601dff07",
+            "bytes": 540,
             "available": false
           },
-          "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран."
+          "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран.",
+          "path": "translations/com.oplus.themestore/platform/ru.json",
+          "entry": "resources.arsc",
+          "sha256": "cfc6cf26650e73860053b6c789bceb7eb2ffdc7714928639279608eb601dff07",
+          "bytes": 540,
+          "entries": 0,
+          "available": false,
+          "changelog_path": "changes/index.json",
+          "change_summary": "Начальный импорт: 0 записей, разделы и конфликты описаны в журнале"
         }
       ]
     }
-  ]
+  ],
+  "changelog": {
+    "path": "changes/index.json",
+    "latest": "changes/2026-11-15-initial-import.md",
+    "updated": "2026-11-15"
+  }
 }

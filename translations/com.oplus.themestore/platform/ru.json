@@ -1,18 +1,24 @@
 {
   "schema_version": 3,
   "package": "com.oplus.themestore",
+  "layer": "platform",
   "language": "ru",
   "language_name": "Русский",
-  "source_catalog": "ThemeStore_com_heytap_themestore_17_22_1_localization_catalog_RU.zip",
-  "version_policy": "advisory; applies to every installed version",
-  "layer": "platform",
+  "generated": true,
+  "source_files": [
+    "resources.json",
+    "source-records.json",
+    "conflicts.json"
+  ],
   "sections": {
     "resources": {}
   },
   "entries": {},
   "counts": {
-    "resource_pairs": 0,
-    "source_records_with_translation": 0
+    "resources": 0
   },
-  "notes": "Заготовка: исходный каталог ресурсов для этого пакета ещё не прислан."
+  "notes": [
+    "This file is generated. Edit platform/resources.json.",
+    "Cobalt patches matching strings in the installed resources.arsc and then asks Platform to mount it."
+  ]
 }
