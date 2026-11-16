@@ -1,16 +1,12 @@
 {
   "schema_version": 3,
   "package": "com.heytap.themestore",
-  "layer": "app",
   "language": "ru",
   "language_name": "Русский",
-  "generated": true,
-  "source_files": [
-    "legacy.json",
-    "dex.json",
-    "assets.json",
-    "server.json"
-  ],
+  "layer": "app",
+  "source_catalog": "ThemeStore_com_heytap_themestore_17_22_1_localization_catalog_RU.zip",
+  "version_policy": "advisory; applies to every installed version",
+  "edit_policy": "Edit sections; entries is a generated compatibility view and is refreshed by the repository workflow.",
   "sections": {
     "legacy": {
       "%d selected": "Выбрано: %d",
@@ -7358,7 +7354,6 @@
       "Error": "Ошибка"
     },
     "server": {
-      "限时特惠": "Спецпредложение",
       "我的金币": "Мои монеты",
       "主题VIP": "Темы VIP",
       "推荐": "Для вас",
@@ -12725,7 +12720,6 @@
     " 安装完成": "Установка завершена",
     " 安装成功": "Установка выполнена",
     "Loading ": "Загрузка",
-    "限时特惠": "Спецпредложение",
     "我的金币": "Мои монеты",
     "主题VIP": "Темы VIP",
     "手机宠物": "Питомец",
@@ -12874,10 +12868,18 @@
     "legacy": 4974,
     "dex": 1790,
     "assets": 575,
-    "server": 192
+    "server": 191
   },
   "notes": [
-    "This file is generated. Edit app/legacy.json, dex.json, assets.json or server.json.",
-    "Empty server entries are placeholders and are not applied."
+    "legacy contains the previously published 4974-entry dictionary and is retained to avoid losing translations.",
+    "server is the editable place for strings delivered by Theme Store servers; empty values are placeholders and are not applied.",
+    "A GitHub workflow refreshes entries, catalog checksums and changes/ after every translation edit."
+  ],
+  "generated": true,
+  "source_files": [
+    "legacy.json",
+    "dex.json",
+    "assets.json",
+    "server.json"
   ]
 }

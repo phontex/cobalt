@@ -1,18 +1,13 @@
 {
   "schema_version": 3,
   "package": "com.oplus.themestore",
-  "layer": "app",
   "language": "ru",
   "language_name": "Русский",
-  "generated": true,
-  "source_files": [
-    "legacy.json",
-    "dex.json",
-    "assets.json",
-    "server.json"
-  ],
+  "source_catalog": "legacy published dictionary",
+  "version_policy": "advisory; applies to every installed version",
+  "layer": "app",
   "sections": {
-    "legacy": {
+    "dex": {
       "Fewer than %d second. Timer will restart the next time you open this app.": "Менее %d сек. Таймер начнётся заново при следующем открытии приложения.",
       "Fewer than %d seconds. Timer will restart the next time you open this app.": "Менее %d сек. Таймер начнётся заново при следующем открытии приложения.",
       "Use for %d second to earn coins": "Пользуйтесь %d сек., чтобы получить монеты",
@@ -4543,7 +4538,6 @@
       "资源不可用": "Ресурс недоступен",
       "资源不适配": "Ресурс не подходит"
     },
-    "dex": {},
     "assets": {},
     "server": {}
   },
@@ -9079,13 +9073,8 @@
     "资源不适配": "Ресурс не подходит"
   },
   "counts": {
-    "legacy": 4529,
-    "dex": 0,
+    "dex": 4529,
     "assets": 0,
     "server": 0
-  },
-  "notes": [
-    "This file is generated. Edit app/legacy.json, dex.json, assets.json or server.json.",
-    "Empty server entries are placeholders and are not applied."
-  ]
+  }
 }

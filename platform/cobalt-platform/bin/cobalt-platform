@@ -6,14 +6,15 @@
 #   * acts only on an explicit request that names a package, a version and a file;
 #   * every state-changing command writes a record and a log line before and after.
 set -u
-VERSION=0.7.0
+VERSION=0.7.3
 API=7
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
 STATUS="$ROOT/status.json"
 ROLES="$ROOT/roles"
 RECORDS="$ROOT/records"
-mkdir -p "$ROOT" "$LOGDIR" "$ROOT/inbox" "$ROOT/cache" "$ROOT/backup" "$ROLES" "$RECORDS" 2>/dev/null || true
+BACKUP="$ROOT/backup"
+mkdir -p "$ROOT" "$LOGDIR" "$ROOT/inbox" "$ROOT/cache" "$BACKUP" "$ROLES" "$RECORDS" 2>/dev/null || true
 
 log() {
   level="$1"; event="$2"; target="${3:-}"; message="${4:-}"
@@ -28,7 +29,7 @@ sha256_of() { (sha256sum "$1" 2>/dev/null || toybox sha256sum "$1" 2>/dev/null |
 # a temp directory, so a caller cannot talk it into replacing a system file.
 allowed_path() {
   case "${1:-}" in
-    /data/data/app.cobalt.translate/*|/data/user/*/app.cobalt.translate/*) return 0;;
+    /data/data/app.cobalt.translate/*|/data/user/*/app.cobalt.translate/*|/data/data/app.cobalt/*|/data/user/*/app.cobalt/*) return 0;;
     /data/adb/cobalt-platform/cache/*|/data/local/tmp/*) return 0;;
     *) return 1;;
   esac
@@ -48,9 +49,15 @@ pkg_code() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionCode=' | sed 's
 pkg_splits() { pm path "$1" 2>/dev/null | sed 's/^package://' | tr '\n' ';' | sed 's/;$//'; }
 
 write_status() {
-  root_ok=0; idout=$(id 2>/dev/null || true); echo "$idout" | grep -q 'uid=0' && root_ok=1
-  printf '{"module_id":"cobalt-platform","module_version":"%s","api_version":%s,"root":%s,"enabled":true,"apk_patching":false,"network":false,"updated_at":"%s"}\n' \
-    "$VERSION" "$API" "$root_ok" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" > "$STATUS"
+  root_ok=0
+  idout=$(id 2>/dev/null || true)
+  echo "$idout" | grep -q 'uid=0' && root_ok=1
+  lsposed_ok=0
+  if [ -d /data/adb/lspd ] || [ -d /data/adb/modules/zygisk_lsposed ] || [ -d /data/adb/modules/lsposed ]; then lsposed_ok=1; fi
+  root_json=false; [ "$root_ok" = 1 ] && root_json=true
+  lsposed_json=false; [ "$lsposed_ok" = 1 ] && lsposed_json=true
+  printf '{"module_id":"cobalt-platform","module_version":"%s","api_version":%s,"root":%s,"lsposed":%s,"enabled":true,"apk_patching":false,"network":false,"updated_at":"%s"}\n' \
+    "$VERSION" "$API" "$root_json" "$lsposed_json" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" > "$STATUS"
 }
 
 status() { write_status; cat "$STATUS"; log info status '' 'status requested'; }
@@ -96,17 +103,46 @@ export_apk() {
   allowed_path "$dest" || { log warn export "$target" "refused destination: $dest"; echo '{"error":"destination not allowed"}'; return 2; }
   base=$(pkg_path "$target")
   [ -n "$base" ] || { log warn export "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
+
+  version=$(pkg_version "$target")
+  safe=$(printf '%s' "$target" | tr -c 'A-Za-z0-9._-' '_')
+  backup="$BACKUP/$safe.apk"
+  backup_version_file="$BACKUP/$safe.version"
+
+  # The path reported by `pm path` is shadowed by our own bind mount once a translation is
+  # active. Reading it would export the already-translated APK, and the next patch would find
+  # no original strings left. Remove the mount first so we always read the real installed file.
+  if [ -f "$RECORDS/$target.json" ]; then
+    ns_init umount -l "$base" 2>/dev/null
+    rm -f "$RECORDS/$target.json" 2>/dev/null
+    log info export "$target" 'temporarily unmounted to read the original APK'
+  fi
+
+  backup_version=''
+  [ -f "$backup_version_file" ] && backup_version=$(cat "$backup_version_file" 2>/dev/null)
+  if [ -f "$backup" ] && [ "$backup_version" = "$version" ] && looks_like_apk "$backup"; then
+    source_apk="$backup"
+    log info export "$target" "using pristine backup for $version"
+  else
+    mkdir -p "$BACKUP" 2>/dev/null
+    cp -f "$base" "$backup" 2>/dev/null || { log error export "$target" "cannot create backup: $backup"; echo '{"error":"cannot create backup"}'; return 1; }
+    chmod 644 "$backup" 2>/dev/null
+    printf '%s' "$version" > "$backup_version_file" 2>/dev/null
+    source_apk="$backup"
+    log info export "$target" "backup created for $version"
+  fi
+
   dir=$(dirname "$dest")
   mkdir -p "$dir" 2>/dev/null || { echo '{"error":"cannot create destination"}'; return 1; }
-  cp -f "$base" "$dest" 2>/dev/null || { log error export "$target" "copy failed: $dest"; echo '{"error":"copy failed"}'; return 1; }
+  cp -f "$source_apk" "$dest" 2>/dev/null || { log error export "$target" "copy failed: $dest"; echo '{"error":"copy failed"}'; return 1; }
   chmod 644 "$dest" 2>/dev/null
   owner=$(stat -c %u "$dir" 2>/dev/null)
   [ -n "$owner" ] && chown "$owner" "$dest" 2>/dev/null
   size=$(stat -c %s "$dest" 2>/dev/null || echo 0)
   digest=$(sha256_of "$dest")
   log info export "$target" "exported $size bytes to $dest"
-  printf '{"ok":true,"package":"%s","path":"%s","bytes":%s,"sha256":"%s"}\n' \
-    "$(json_escape "$target")" "$(json_escape "$dest")" "$size" "$digest"
+  printf '{"ok":true,"package":"%s","path":"%s","bytes":%s,"sha256":"%s","source":"backup","version":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$dest")" "$size" "$digest" "$(json_escape "$version")"
 }
 
 # Android gives the root shell its own mount namespace, while applications live in init's.
@@ -129,27 +165,41 @@ mount_apk() {
   base=$(pkg_path "$target")
   [ -n "$base" ] || { log warn mount "$target" 'package not installed'; echo '{"error":"not installed"}'; return 1; }
   actual=$(pkg_version "$target")
-  # The version is advisory: a different build is a warning, not a refusal. The caller decides,
-  # and the mismatch is recorded so it stays visible after the fact.
   version_warning=''
   if [ -n "$want" ] && [ "$actual" != "$want" ]; then
     version_warning="version mismatch: installed $actual, built for $want"
     log warn mount "$target" "$version_warning"
   fi
-  digest=$(sha256_of "$apk")
-  ctx=$(ls -Z "$base" 2>/dev/null | awk '{print $1}')
+
+  # Never relabel the APK inside Cobalt App storage. Doing so made the first patch work,
+  # then left patched.apk unreadable to the app (EACCES on the next attempt). Stage a
+  # root-owned copy in the platform cache, relabel only that copy, and mount the staged file.
+  safe_target=$(printf '%s' "$target" | tr -c 'A-Za-z0-9._-' '_')
+  staged="$ROOT/cache/${safe_target}.apk"
+  rm -f "$staged" 2>/dev/null
+  cp -f "$apk" "$staged" 2>/dev/null || {
+    log error mount "$target" "staging failed: $staged"
+    echo '{"error":"staging failed"}'; return 4;
+  }
+  chmod 644 "$staged" 2>/dev/null
+  chown 0:0 "$staged" 2>/dev/null || true
+  digest=$(sha256_of "$staged")
+  ctx=$(ns_init ls -Z "$base" 2>/dev/null | awk '{print $1}')
   ns_init umount -l "$base" 2>/dev/null
-  chmod 644 "$apk"
-  if [ -n "$ctx" ]; then chcon "$ctx" "$apk" 2>/dev/null || chcon u:object_r:system_file:s0 "$apk" 2>/dev/null; fi
-  if ! ns_init mount --bind "$apk" "$base"; then
-    log error mount "$target" 'bind mount failed'
-    echo '{"error":"mount failed"}'; return 4
+  if [ -n "$ctx" ]; then
+    chcon "$ctx" "$staged" 2>/dev/null || chcon u:object_r:system_file:s0 "$staged" 2>/dev/null || true
   fi
-  printf '{"package":"%s","target":"%s","apk":"%s","sha256":"%s","version_name":"%s","at":"%s"}\n' \
-    "$(json_escape "$target")" "$(json_escape "$base")" "$(json_escape "$apk")" "$digest" \
-    "$(json_escape "$actual")" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" \
+  if ! ns_init mount --bind "$staged" "$base"; then
+    rm -f "$staged" 2>/dev/null
+    log error mount "$target" 'bind mount failed'
+    echo '{"error":"mount failed"}'; return 4;
+  fi
+  inode=$(ns_init stat -c %i "$base" 2>/dev/null)
+  printf '{"package":"%s","target":"%s","apk":"%s","sha256":"%s","inode":"%s","version_name":"%s","warning":"%s","at":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$base")" "$(json_escape "$staged")" "$digest" "$inode" \
+    "$(json_escape "$actual")" "$(json_escape "$version_warning")" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" \
     > "$RECORDS/$target.json"
-  log info mount "$target" "mounted $apk ($digest)"
+  log info mount "$target" "mounted $staged ($digest)"
   am force-stop "$target" 2>/dev/null
   echo '{"ok":true}'
 }
@@ -159,7 +209,10 @@ umount_apk() {
   base=$(pkg_path "$target")
   [ -n "$base" ] || { echo '{"error":"not installed"}'; return 1; }
   ns_init umount -l "$base" 2>/dev/null && log info umount "$target" "unmounted $base" || log warn umount "$target" 'nothing mounted'
-  rm -f "$RECORDS/$target.json" 2>/dev/null
+  record="$RECORDS/$target.json"
+  staged=$(sed -n 's/.*"apk":"\([^"]*\)".*//p' "$record" 2>/dev/null)
+  rm -f "$record" 2>/dev/null
+  case "$staged" in "$ROOT/cache/"*) rm -f "$staged" 2>/dev/null;; esac
   am force-stop "$target" 2>/dev/null
   echo '{"ok":true}'
 }
