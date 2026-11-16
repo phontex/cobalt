@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-16T00:00:00Z",
+  "updated": "2026-11-16T03:13:32Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -27,16 +27,16 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "59ab353c",
+          "content_id": "ef9b55be",
           "path": "translations/com.heytap.themestore/app/ru.json",
-          "sha256": "59ab353cbdc8fc004cb3f3077040e7d2fdc029beb483a82d0f7d690feee4efbd",
-          "bytes": 1440132,
-          "entries": 5316,
+          "sha256": "ef9b55be32f84f2a3cd0e20a33515ee5796e63606ae8f725cee09c5e1d9c13be",
+          "bytes": 1440022,
+          "entries": 5315,
           "verified_version": "17.22.1",
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 1, изменено 0, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 0, удалено 1 записей"
         },
         {
           "kind": "resource_map",
@@ -62,7 +62,7 @@
           "bytes": 1771288,
           "entries": 6606,
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 1, изменено 0, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 0, удалено 1 записей"
         }
       ]
     },
@@ -97,7 +97,7 @@
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 1, изменено 0, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 0, удалено 1 записей"
         },
         {
           "kind": "resource_map",
@@ -123,14 +123,14 @@
           "entries": 0,
           "available": false,
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 1, изменено 0, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 0, удалено 1 записей"
         }
       ]
     }
   ],
   "changelog": {
     "path": "changes/index.json",
-    "latest": "changes/2026-11-15-8ffc1657.md",
-    "updated": "2026-11-15"
+    "latest": "changes/2026-11-16-0046ddfb.md",
+    "updated": "2026-11-16"
   }
 }
