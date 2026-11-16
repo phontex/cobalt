@@ -1,8 +1,8 @@
 {
   "product": "cobalt-platform",
-  "latest_version": "0.1.0",
-  "channel": "experimental",
-  "download": "https://github.com/phontex/cobalt/releases/download/platform-v0.1.0/Cobalt_Platform_v0.1.0.zip",
-  "sha256": "e910cd4603f13228c5601dea7efb52e158465efdd284241a70c492611d2472c5",
-  "api_version": 1
+  "latest_version": "0.7.3",
+  "channel": "stable",
+  "download": "https://github.com/phontex/cobalt/releases/download/platform-v0.7.3/Cobalt_Platform_v0.7.3.zip",
+  "sha256": "bb9164362ad74fd3fffb26bf4061330631f0d9e9f0b97ddcc941a803426c9de8",
+  "api_version": 7
 }
