@@ -1,6 +1,6 @@
 id=cobalt-platform
 name=Cobalt Platform
-version=0.7.3
-versionCode=10
+version=0.7.4
+versionCode=11
 author=Phontex
 description=System executor for Cobalt roles and explicit APK surgery; no bundled APK, no network

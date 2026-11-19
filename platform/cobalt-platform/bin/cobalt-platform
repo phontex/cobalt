@@ -6,7 +6,7 @@
 #   * acts only on an explicit request that names a package, a version and a file;
 #   * every state-changing command writes a record and a log line before and after.
 set -u
-VERSION=0.7.3
+VERSION=0.7.4
 API=7
 ROOT=/data/adb/cobalt-platform
 LOGDIR="$ROOT/logs"
