@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-19T00:57:57Z",
+  "updated": "2026-11-19T05:56:36Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -45,21 +45,21 @@
           "language": "ru",
           "language_name": "Русский",
           "label": "2026-11-15.1",
-          "content_id": "8e95c386",
+          "content_id": "24bb2f1e",
           "verified_version": "17.23.0beta1",
           "payload": {
             "path": "translations/com.heytap.themestore/platform/ru.json",
             "entry": "resources.arsc",
-            "sha256": "8e95c3865ed0811400746f13f8cdb3d2d06c1a6816ed1fb5b9d8a2d541db720c",
-            "bytes": 1771288,
+            "sha256": "24bb2f1e66b62311cd5fe07aadfd0265f0518cbc51e7fe29d505c31a4541f41a",
+            "bytes": 1770892,
             "available": true
           },
           "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран.",
           "available": true,
           "path": "translations/com.heytap.themestore/platform/ru.json",
           "entry": "resources.arsc",
-          "sha256": "8e95c3865ed0811400746f13f8cdb3d2d06c1a6816ed1fb5b9d8a2d541db720c",
-          "bytes": 1771288,
+          "sha256": "24bb2f1e66b62311cd5fe07aadfd0265f0518cbc51e7fe29d505c31a4541f41a",
+          "bytes": 1770892,
           "entries": 6606,
           "changelog_path": "changes/index.json",
           "change_summary": "Добавлено 0, изменено 64, удалено 0 записей"
@@ -88,10 +88,10 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "e8128e97",
+          "content_id": "8d780b2f",
           "path": "translations/com.oplus.themestore/app/ru.json",
-          "sha256": "e8128e97690793b093673ae2aca9262d2b7762ca5fec869fcfc4aaef4b10fc0a",
-          "bytes": 1035267,
+          "sha256": "8d780b2ffdbc6f3c87aa610836dc61f3fd9c065e6134c6c670557cb642f59388",
+          "bytes": 1035143,
           "entries": 4529,
           "verified_version": "EXP_17.11.20",
           "available": true,
@@ -130,7 +130,7 @@
   ],
   "changelog": {
     "path": "changes/index.json",
-    "latest": "changes/2026-11-17-d33cce69.md",
+    "latest": "changes/2026-11-19-a157e331.md",
     "updated": "2026-11-19"
   }
 }
