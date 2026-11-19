@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-17T22:35:56Z",
+  "updated": "2026-11-19T00:57:57Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -131,6 +131,6 @@
   "changelog": {
     "path": "changes/index.json",
     "latest": "changes/2026-11-17-d33cce69.md",
-    "updated": "2026-11-17"
+    "updated": "2026-11-19"
   }
 }
