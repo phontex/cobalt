@@ -3,6 +3,373 @@
   "entries": [
     {
       "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ],
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/app/legacy"
+            ]
+          },
+          "com.heytap.themestore/platform": {
+            "files": 1,
+            "added": 0,
+            "changed": 64,
+            "removed": 0,
+            "sections": [
+              "com.heytap.themestore/platform/resources"
+            ]
+          },
+          "com.oplus.themestore/app": {
+            "files": 1,
+            "added": 0,
+            "changed": 23,
+            "removed": 0,
+            "sections": [
+              "com.oplus.themestore/app/legacy"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "path": "changes/2026-11-17-d33cce69.md",
+      "summary": {
+        "files": 3,
+        "added": 0,
+        "changed": 110,
+        "removed": 0,
+        "sections": [
+          "com.heytap.themestore/app/legacy",
+          "com.heytap.themestore/platform/resources",
+          "com.oplus.themestore/app/legacy"
+        ]
+      }
+    },
+    {
+      "date": "2026-11-17",
       "path": "changes/2026-11-17-a6f8c651.md",
       "summary": {
         "files": 3,
@@ -60,7 +427,7 @@
   ],
   "latest": {
     "date": "2026-11-17",
-    "path": "changes/2026-11-17-a6f8c651.md",
+    "path": "changes/2026-11-17-d33cce69.md",
     "summary": {
       "files": 3,
       "added": 0,
@@ -70,7 +437,36 @@
         "com.heytap.themestore/app/legacy",
         "com.heytap.themestore/platform/resources",
         "com.oplus.themestore/app/legacy"
-      ]
+      ],
+      "by_layer": {
+        "com.heytap.themestore/app": {
+          "files": 1,
+          "added": 0,
+          "changed": 23,
+          "removed": 0,
+          "sections": [
+            "com.heytap.themestore/app/legacy"
+          ]
+        },
+        "com.heytap.themestore/platform": {
+          "files": 1,
+          "added": 0,
+          "changed": 64,
+          "removed": 0,
+          "sections": [
+            "com.heytap.themestore/platform/resources"
+          ]
+        },
+        "com.oplus.themestore/app": {
+          "files": 1,
+          "added": 0,
+          "changed": 23,
+          "removed": 0,
+          "sections": [
+            "com.oplus.themestore/app/legacy"
+          ]
+        }
+      }
     }
   }
 }

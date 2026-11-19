@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-17T11:49:19Z",
+  "updated": "2026-11-17T22:35:56Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -27,16 +27,16 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "2f9c204f",
+          "content_id": "c88ebdf4",
           "path": "translations/com.heytap.themestore/app/ru.json",
-          "sha256": "2f9c204f565929f3c5b031b5dc4d7727bb2a0fe8dec91199ec05499ef0d7dfa5",
-          "bytes": 1439722,
-          "entries": 5315,
+          "sha256": "c88ebdf48e083ebfe2bacd817c1fdb6a2832e255fe47c080929a3d4c59ae9f23",
+          "bytes": 662200,
+          "entries": 2341,
           "verified_version": "17.22.1",
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 110, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 23, удалено 0 записей"
         },
         {
           "kind": "resource_map",
@@ -45,24 +45,24 @@
           "language": "ru",
           "language_name": "Русский",
           "label": "2026-11-15.1",
-          "content_id": "179936c2",
+          "content_id": "8e95c386",
           "verified_version": "17.23.0beta1",
           "payload": {
             "path": "translations/com.heytap.themestore/platform/ru.json",
             "entry": "resources.arsc",
-            "sha256": "179936c2c8457a8054d2b9f2a353ccdb565ed9e52da49d12dea810b2d66e840f",
-            "bytes": 1770460,
+            "sha256": "8e95c3865ed0811400746f13f8cdb3d2d06c1a6816ed1fb5b9d8a2d541db720c",
+            "bytes": 1771288,
             "available": true
           },
           "notes": "Ресурсы, которые нельзя перехватить в рантайме. Файл появится, когда будет собран.",
           "available": true,
           "path": "translations/com.heytap.themestore/platform/ru.json",
           "entry": "resources.arsc",
-          "sha256": "179936c2c8457a8054d2b9f2a353ccdb565ed9e52da49d12dea810b2d66e840f",
-          "bytes": 1770460,
+          "sha256": "8e95c3865ed0811400746f13f8cdb3d2d06c1a6816ed1fb5b9d8a2d541db720c",
+          "bytes": 1771288,
           "entries": 6606,
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 110, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 64, удалено 0 записей"
         }
       ]
     },
@@ -88,16 +88,16 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "4fd007de",
+          "content_id": "e8128e97",
           "path": "translations/com.oplus.themestore/app/ru.json",
-          "sha256": "4fd007deec1b9369885b2c7b702fe353cffc590844754de8522283b46e53861a",
-          "bytes": 1034756,
+          "sha256": "e8128e97690793b093673ae2aca9262d2b7762ca5fec869fcfc4aaef4b10fc0a",
+          "bytes": 1035267,
           "entries": 4529,
           "verified_version": "EXP_17.11.20",
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 110, удалено 0 записей"
+          "change_summary": "Добавлено 0, изменено 23, удалено 0 записей"
         },
         {
           "kind": "resource_map",
@@ -123,14 +123,14 @@
           "entries": 0,
           "available": false,
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 110, удалено 0 записей"
+          "change_summary": ""
         }
       ]
     }
   ],
   "changelog": {
     "path": "changes/index.json",
-    "latest": "changes/2026-11-17-a6f8c651.md",
+    "latest": "changes/2026-11-17-d33cce69.md",
     "updated": "2026-11-17"
   }
 }

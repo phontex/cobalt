@@ -6,13 +6,32 @@ are the only files downloaded by Cobalt. The script is intentionally stdlib-only
 and a local Termux checkout produce the same bytes and SHA-256 values.
 """
 from __future__ import annotations
-import argparse, datetime as dt, hashlib, json, os, subprocess
+import argparse, datetime as dt, hashlib, json, os, re, subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "manifests" / "catalog.json"
 PACKAGES = ("com.heytap.themestore", "com.oplus.themestore")
 APP_SOURCES = ("legacy.json", "dex.json", "assets.json", "server.json")
+PLACEHOLDER_RE = re.compile(r"%(?:\d+\$)?[-+#0 ]*(?:\d+(?:\.\d+)?)?[a-zA-Z]")
+
+
+def validate_placeholders(entries, source_path):
+    """Preserve printf/Android conversion types while allowing positional reordering."""
+    mismatches = []
+    for source, translated in entries.items():
+        source_types = sorted(token[-1].lower() for token in PLACEHOLDER_RE.findall(source))
+        translated_types = sorted(token[-1].lower() for token in PLACEHOLDER_RE.findall(translated))
+        if source_types != translated_types:
+            mismatches.append((source, translated, source_types, translated_types))
+            if len(mismatches) >= 12:
+                break
+    if mismatches:
+        details = "\n".join(
+            f"  {source!r} -> {translated!r} ({before} != {after})"
+            for source, translated, before, after in mismatches
+        )
+        raise ValueError(f"Placeholder mismatch in {source_path}:\n{details}")
 
 def read_json(path: Path, default=None):
     try:
@@ -29,16 +48,46 @@ def active_entries(value):
     return {str(k): str(v) for k, v in entries.items()
             if isinstance(k, str) and isinstance(v, str) and k and v}
 
+def platform_source_keys(package: str) -> set[str]:
+    """All literal APK resource source values across locales, not only translated keys."""
+    source = read_json(ROOT / "translations" / package / "platform" / "source-records.json")
+    keys: set[str] = set()
+    def collect(value):
+        if isinstance(value, str):
+            if value.strip(): keys.add(value)
+        elif isinstance(value, list):
+            for item in value: collect(item)
+        elif isinstance(value, dict):
+            for item in value.values(): collect(item)
+    for record in source.get("records", []):
+        if isinstance(record, dict): collect(record.get("values", {}))
+    return keys
+
 def build_layer(package: str, layer: str):
     directory = ROOT / "translations" / package / layer
     if layer == "app":
+        # Platform owns exact source-key overlaps. A runtime hook cannot know whether a
+        # TextView came from resources.arsc or server/Dex, so serving an overlap from both
+        # layers causes double application, incorrect server text, and platform/runtime drift.
+        platform_entries = active_entries(read_json(ROOT / "translations" / package / "platform" / "resources.json"))
+        platform_sources = platform_source_keys(package)
         sections = {}
         merged = {}
+        excluded = 0
         for filename in APP_SOURCES:
             section = filename[:-5]
-            entries = active_entries(read_json(directory / filename))
+            source_path = directory / filename
+            source_entries = active_entries(read_json(source_path))
+            validate_placeholders(source_entries, source_path.relative_to(ROOT).as_posix())
+            # Runtime hooks see text, not its origin. Assign every exact literal APK resource
+            # source to Platform, even if no Russian platform value exists yet or the App
+            # candidate came from server.json. Non-overlapping server strings remain in App.
+            platform_owned = platform_entries.keys() | platform_sources
+            entries = {key: value for key, value in source_entries.items() if key not in platform_owned}
+            excluded += len(source_entries) - len(entries)
             sections[section] = entries
-            # Source order is deliberate: a server override wins over legacy/dex/assets.
+            # Source order is deliberate: a server override wins over legacy/dex/assets
+            # only when the key is not owned by the platform layer.
             merged.update(entries)
         document = {
             "schema_version": 3,
@@ -51,14 +100,17 @@ def build_layer(package: str, layer: str):
             "sections": sections,
             "entries": merged,
             "counts": {name: len(values) for name, values in sections.items()},
+            "excluded_by_platform": excluded,
             "notes": [
                 "This file is generated. Edit app/legacy.json, dex.json, assets.json or server.json.",
                 "Empty server entries are placeholders and are not applied.",
+                "All exact APK resource source values from platform/source-records.json are owned by Platform and excluded from the runtime dictionary, including untranslated resource values.",
             ],
         }
     else:
         source = read_json(directory / "resources.json")
         entries = active_entries(source)
+        validate_placeholders(entries, (directory / "resources.json").relative_to(ROOT).as_posix())
         document = {
             "schema_version": 3,
             "package": package,
@@ -118,7 +170,10 @@ def markdown_change(parent, revision, stamp):
         return None, None
     lines = [f"# Изменения переводов — {stamp}", "", f"Коммит-источник: `{revision[:12]}`", "",
              "Этот журнал создан автоматически. Пустые серверные заготовки не считаются активным переводом.", ""]
-    summary = {"files": 0, "added": 0, "changed": 0, "removed": 0, "sections": []}
+    summary = {
+        "files": 0, "added": 0, "changed": 0, "removed": 0, "sections": [],
+        "by_layer": {},
+    }
     for path in files:
         current = active_entries(read_json(ROOT / path))
         before = old_entries(parent, path)
@@ -129,6 +184,10 @@ def markdown_change(parent, revision, stamp):
         package = path.parts[1] if len(path.parts) > 1 else "unknown"
         area = "/".join(path.parts[2:-1])
         section = path.stem
+        layer_key = f"{package}/{area}"
+        layer_summary = summary["by_layer"].setdefault(
+            layer_key, {"files": 0, "added": 0, "changed": 0, "removed": 0, "sections": []}
+        )
         lines += [f"## {package} · {area} · `{path.name}`", ""]
         if added:
             lines += [f"### Добавлено ({len(added)})", ""]
@@ -147,6 +206,11 @@ def markdown_change(parent, revision, stamp):
             lines.append("")
         summary["added"] += len(added); summary["changed"] += len(changed); summary["removed"] += len(removed)
         summary["sections"].append(f"{package}/{area}/{section}")
+        layer_summary["files"] += 1
+        layer_summary["added"] += len(added)
+        layer_summary["changed"] += len(changed)
+        layer_summary["removed"] += len(removed)
+        layer_summary["sections"].append(f"{package}/{area}/{section}")
     if summary["files"] == 0:
         return None, None
     name = f"{stamp}-{revision[:8]}.md"
@@ -193,7 +257,7 @@ def update_catalog(layer_info, change_path, summary, stamp):
                     "entries": info["entries"], "content_id": info["sha256"][:8],
                     "available": True,
                     "changelog_path": "changes/index.json",
-                    "change_summary": info["summary"] or layer.get("change_summary", ""),
+                    "change_summary": info["summary"] if summary is not None else layer.get("change_summary", ""),
                 })
             elif layer.get("served_by") == "platform":
                 info = layer_info[package]["platform"]
@@ -202,7 +266,7 @@ def update_catalog(layer_info, change_path, summary, stamp):
                     "sha256": info["sha256"], "bytes": info["bytes"], "entries": info["entries"],
                     "content_id": info["sha256"][:8], "available": info["entries"] > 0,
                     "changelog_path": "changes/index.json",
-                    "change_summary": info["summary"] or layer.get("change_summary", ""),
+                    "change_summary": info["summary"] if summary is not None else layer.get("change_summary", ""),
                 })
                 # Keep the old payload shape populated for schema-2 readers, but it now points to text.
                 layer["payload"] = {"path": info["path"], "entry": "resources.arsc",
@@ -233,9 +297,18 @@ def main():
         change_path, summary = markdown_change(parent, revision, stamp)
         update_index(change_path, summary, stamp)
     if summary:
-        text = f"Добавлено {summary['added']}, изменено {summary['changed']}, удалено {summary['removed']} записей"
         for package in info:
-            for layer in info[package]: info[package][layer]["summary"] = text
+            for layer in info[package]:
+                layer_key = f"{package}/{layer}"
+                layer_summary = summary.get("by_layer", {}).get(layer_key)
+                if layer_summary:
+                    info[package][layer]["summary"] = (
+                        f"Добавлено {layer_summary['added']}, "
+                        f"изменено {layer_summary['changed']}, "
+                        f"удалено {layer_summary['removed']} записей"
+                    )
+                else:
+                    info[package][layer]["summary"] = ""
     elif not args.initial:
         # A push that did not touch a translation must not erase the last real summary.
         for package in info:
