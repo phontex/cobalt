@@ -1,8 +1,8 @@
 {
   "product": "cobalt-app",
-  "latest_version": "0.80.1",
+  "latest_version": "0.80.3",
   "channel": "stable",
-  "download": "https://github.com/phontex/cobalt/releases/download/app-v0.80.1/Cobalt_v0.80.1-Aster.apk",
-  "sha256": "ad87b2c1c72e8605eb9909295b19274dca5e75f6a5ee97b795494258e45f9284",
+  "download": "https://github.com/phontex/cobalt/releases/download/app-v0.80.3/Cobalt_v0.80.3.apk",
+  "sha256": "a8bc06057f8262f07c221eee78b72356df34a3c67657f904909cb2997b8f9077",
   "min_platform_api": 7
 }
