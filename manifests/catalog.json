@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "product": "cobalt-catalog",
-  "updated": "2026-11-19T05:56:50Z",
+  "updated": "2026-11-19T13:04:12Z",
   "min_app_version_code": 68,
   "apps": [
     {
@@ -27,16 +27,16 @@
           "language_name": "Русский",
           "label": "2026-11-14.1",
           "version": 1,
-          "content_id": "c88ebdf4",
+          "content_id": "bae576d8",
           "path": "translations/com.heytap.themestore/app/ru.json",
-          "sha256": "c88ebdf48e083ebfe2bacd817c1fdb6a2832e255fe47c080929a3d4c59ae9f23",
-          "bytes": 662200,
-          "entries": 2341,
+          "sha256": "bae576d8da250c870499d974a37871129a55fb7ae2923e618faa86918f2b86b8",
+          "bytes": 662324,
+          "entries": 2342,
           "verified_version": "17.22.1",
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 23, удалено 0 записей"
+          "change_summary": "Добавлено 1, изменено 0, удалено 0 записей"
         },
         {
           "kind": "resource_map",
@@ -62,7 +62,7 @@
           "bytes": 1770892,
           "entries": 6606,
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 64, удалено 0 записей"
+          "change_summary": ""
         }
       ]
     },
@@ -97,7 +97,7 @@
           "available": true,
           "notes": "Строки, которые LSPosed подменяет в процессе приложения: ресурсные значения, DEX и asset-строки.",
           "changelog_path": "changes/index.json",
-          "change_summary": "Добавлено 0, изменено 23, удалено 0 записей"
+          "change_summary": ""
         },
         {
           "kind": "resource_map",
@@ -130,7 +130,7 @@
   ],
   "changelog": {
     "path": "changes/index.json",
-    "latest": "changes/2026-11-19-a157e331.md",
+    "latest": "changes/2026-11-19-970c9563.md",
     "updated": "2026-11-19"
   }
 }
