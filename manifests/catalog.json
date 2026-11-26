@@ -1,0 +1,136 @@
+{
+  "schema_version": 3,
+  "product": "cobalt-catalog",
+  "updated": "2026-11-27T01:08:07Z",
+  "min_app_version_code": 10000,
+  "apps": [
+    {
+      "package": "com.heytap.themestore",
+      "name": "Theme Store",
+      "purpose": "Магазин тем, обоев и шрифтов для ColorOS",
+      "compatibility": {
+        "policy": "warn",
+        "verified_versions": [
+          "17.23.0beta1",
+          "17.22.1"
+        ],
+        "note": "Перевод работает и на других версиях. Если вашей версии нет в списке проверенных, возможны непереведённые строки или смещения — переустановите перевод после обновления приложения.",
+        "min_version": "17.22.1",
+        "max_version": "17.23.0beta1"
+      },
+      "layers": [
+        {
+          "kind": "runtime",
+          "served_by": "app",
+          "scope": "server+runtime",
+          "language": "ru",
+          "language_name": "Русский",
+          "label": "2026-11-27.1",
+          "version": 1,
+          "content_id": "63cb4233",
+          "path": "translations/com.heytap.themestore/app/ru.json",
+          "sha256": "63cb42336880c1ec38adb0b3e9e67089412a7e64c2297a0f90629822ed29679e",
+          "bytes": 662057,
+          "entries": 2340,
+          "verified_version": "17.22.1",
+          "available": true,
+          "notes": "Серверная и динамическая часть, которой нет в ресурсах APK (применяется через LSPosed).",
+          "changelog_path": "changes/index.json",
+          "change_summary": "Первая публикация: 2340 записей"
+        },
+        {
+          "kind": "resource_map",
+          "served_by": "platform",
+          "scope": "apk+splits",
+          "language": "ru",
+          "language_name": "Русский",
+          "label": "2026-11-27.1",
+          "content_id": "28a7cbab",
+          "verified_version": "17.23.0beta1",
+          "payload": {
+            "path": "translations/com.heytap.themestore/platform/ru.json",
+            "entry": "resources.arsc",
+            "sha256": "28a7cbabf0c619625175194326d6bf65bca3d4423d12181817fcc6c2c57f13b7",
+            "bytes": 1774326,
+            "available": true
+          },
+          "notes": "Ресурсы установленного APK и его сплитов (base.apk + split_*.apk) и системные шрифты, применяемые через Cobalt Platform.",
+          "available": true,
+          "path": "translations/com.heytap.themestore/platform/ru.json",
+          "entry": "resources.arsc",
+          "sha256": "28a7cbabf0c619625175194326d6bf65bca3d4423d12181817fcc6c2c57f13b7",
+          "bytes": 1774326,
+          "entries": 6638,
+          "changelog_path": "changes/index.json",
+          "change_summary": "Первая публикация: 6638 записей"
+        }
+      ]
+    },
+    {
+      "package": "com.oplus.themestore",
+      "name": "Theme Basic",
+      "purpose": "Магазин тем, обоев и шрифтов",
+      "compatibility": {
+        "policy": "warn",
+        "verified_versions": [
+          "EXP_17.11.20"
+        ],
+        "note": "Перевод работает и на других версиях. Если вашей версии нет в списке проверенных, возможны непереведённые строки или смещения — переустановите перевод после обновления приложения.",
+        "min_version": "EXP_17.11.20",
+        "max_version": "EXP_17.11.20"
+      },
+      "layers": [
+        {
+          "kind": "runtime",
+          "served_by": "app",
+          "scope": "server+runtime",
+          "language": "ru",
+          "language_name": "Русский",
+          "label": "2026-11-27.1",
+          "version": 1,
+          "content_id": "8d780b2f",
+          "path": "translations/com.oplus.themestore/app/ru.json",
+          "sha256": "8d780b2ffdbc6f3c87aa610836dc61f3fd9c065e6134c6c670557cb642f59388",
+          "bytes": 1035143,
+          "entries": 4529,
+          "verified_version": "EXP_17.11.20",
+          "available": true,
+          "notes": "Серверная и динамическая часть, которой нет в ресурсах APK (применяется через LSPosed).",
+          "changelog_path": "changes/index.json",
+          "change_summary": "Первая публикация: 4529 записей"
+        },
+        {
+          "kind": "resource_map",
+          "served_by": "platform",
+          "scope": "apk+splits",
+          "language": "ru",
+          "language_name": "Русский",
+          "label": "",
+          "content_id": "cfc6cf26",
+          "verified_version": "EXP_17.11.20",
+          "payload": {
+            "path": "translations/com.oplus.themestore/platform/ru.json",
+            "entry": "resources.arsc",
+            "sha256": "cfc6cf26650e73860053b6c789bceb7eb2ffdc7714928639279608eb601dff07",
+            "bytes": 540,
+            "available": false
+          },
+          "notes": "Ресурсы установленного APK и его сплитов (base.apk + split_*.apk) и системные шрифты, применяемые через Cobalt Platform.",
+          "path": "translations/com.oplus.themestore/platform/ru.json",
+          "entry": "resources.arsc",
+          "sha256": "cfc6cf26650e73860053b6c789bceb7eb2ffdc7714928639279608eb601dff07",
+          "bytes": 540,
+          "entries": 0,
+          "available": false,
+          "changelog_path": "changes/index.json",
+          "change_summary": ""
+        }
+      ]
+    }
+  ],
+  "changelog": {
+    "path": "changes/index.json",
+    "latest": "changes/2026-11-27-initial.md",
+    "updated": "2026-11-27"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": 3,
+  "package": "com.oplus.themestore",
+  "layer": "platform",
+  "language": "ru",
+  "language_name": "Русский",
+  "generated": true,
+  "source_files": [
+    "resources.json",
+    "source-records.json",
+    "conflicts.json"
+  ],
+  "sections": {
+    "resources": {}
+  },
+  "entries": {},
+  "counts": {
+    "resources": 0
+  },
+  "notes": [
+    "This file is generated. Edit platform/resources.json.",
+    "Cobalt patches matching strings in the installed resources.arsc and then asks Platform to mount it."
+  ]
+}

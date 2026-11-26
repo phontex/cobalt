@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "oplus-themestore-EXP_17.11.20",
+  "package": "com.oplus.themestore",
+  "version_name": "EXP_17.11.20",
+  "version_code": 1711200,
+  "certificate_sha256": null,
+  "translation_mode": "lsposed",
+  "analysis_catalog": "ThemeStore_EXP_17.11.20_localization_catalog",
+  "translation_status": "pending",
+  "features": {
+    "base": {"enabled": false, "mode": "awaiting_translation"},
+    "quick_search": {"enabled": false, "mode": "not_reviewed"},
+    "pet": {"enabled": false, "mode": "not_reviewed"}
+  },
+  "patch_policy": "never_apply_without_exact_identity"
+}

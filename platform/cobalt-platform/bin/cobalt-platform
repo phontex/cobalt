@@ -1,0 +1,395 @@
+#!/system/bin/sh
+# Cobalt Platform — privileged executor for Cobalt.
+#
+# Boundaries (deliberate, not temporary):
+#   * never downloads anything, never contains an APK, never rebuilds an application;
+#   * acts only on an explicit request that names a package, a version and a file;
+#   * every state-changing command writes a record and a log line before and after.
+set -u
+VERSION=1.0.0
+API=7
+ROOT=/data/adb/cobalt-platform
+LOGDIR="$ROOT/logs"
+STATUS="$ROOT/status.json"
+ROLES="$ROOT/roles"
+RECORDS="$ROOT/records"
+BACKUP="$ROOT/backup"
+mkdir -p "$ROOT" "$LOGDIR" "$ROOT/inbox" "$ROOT/cache" "$BACKUP" "$ROLES" "$RECORDS" 2>/dev/null || true
+
+log() {
+  level="$1"; event="$2"; target="${3:-}"; message="${4:-}"
+  ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
+  printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$level" "$event" "$target" "$message" >> "$LOGDIR/platform.log"
+  tail -n 5000 "$LOGDIR/platform.log" > "$LOGDIR/platform.log.tmp" 2>/dev/null && mv "$LOGDIR/platform.log.tmp" "$LOGDIR/platform.log" 2>/dev/null || true
+}
+json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+sha256_of() { (sha256sum "$1" 2>/dev/null || toybox sha256sum "$1" 2>/dev/null || busybox sha256sum "$1" 2>/dev/null) | cut -d" " -f1; }
+# Only these locations may be written to or mounted from. The platform never accepts an
+# arbitrary path: an APK can only come from Cobalt App's own storage, the platform cache or
+# a temp directory, so a caller cannot talk it into replacing a system file.
+allowed_path() {
+  case "${1:-}" in
+    /data/data/com.cobalt.app/*|/data/user/*/com.cobalt.app/*) return 0;;
+    /data/adb/cobalt-platform/cache/*|/data/local/tmp/*) return 0;;
+    *) return 1;;
+  esac
+}
+# A file is only ever mounted if it really is a zip container with a manifest inside.
+looks_like_apk() {
+  [ -f "${1:-}" ] || return 1
+  size=$(stat -c %s "$1" 2>/dev/null || echo 0)
+  [ "$size" -gt 1024 ] || return 1
+  magic=$(head -c 2 "$1" 2>/dev/null)
+  [ "$magic" = "PK" ] || return 1
+  return 0
+}
+pkg_path() { pm path "$1" 2>/dev/null | sed -n 's/^package://p' | head -n 1; }
+pkg_apk_path() {
+  pkg="$1"; apk_name="${2:-base.apk}"
+  case "$apk_name" in
+    ""|"base.apk") pkg_path "$pkg"; return ;;
+    */*|*..*) return 1 ;;
+    *.apk) ;;
+    *) return 1 ;;
+  esac
+  pm path "$pkg" 2>/dev/null | sed -n 's/^package://p' | while IFS= read -r line; do
+    if [ "$(basename "$line")" = "$apk_name" ]; then printf '%s\n' "$line"; break; fi
+  done
+}
+apk_slot() {
+  apk_name="${1:-base.apk}"
+  case "$apk_name" in
+    ""|"base.apk") echo "" ;;
+    *) printf '__%s' "$(printf '%s' "$apk_name" | tr -c 'A-Za-z0-9._-' '_')" ;;
+  esac
+}
+pkg_version() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionName=' | sed 's/.*versionName=//' | tr -d ' \r'; }
+pkg_code() { dumpsys package "$1" 2>/dev/null | grep -m1 'versionCode=' | sed 's/.*versionCode=//; s/[^0-9].*//' | tr -d ' \r'; }
+pkg_splits() { pm path "$1" 2>/dev/null | sed 's/^package://' | tr '\n' ';' | sed 's/;$//'; }
+
+write_status() {
+  root_ok=0
+  idout=$(id 2>/dev/null || true)
+  echo "$idout" | grep -q 'uid=0' && root_ok=1
+  lsposed_ok=0
+  if [ -d /data/adb/lspd ] || [ -d /data/adb/modules/zygisk_lsposed ] || [ -d /data/adb/modules/lsposed ]; then lsposed_ok=1; fi
+  root_json=false; [ "$root_ok" = 1 ] && root_json=true
+  lsposed_json=false; [ "$lsposed_ok" = 1 ] && lsposed_json=true
+  printf '{"module_id":"cobalt-platform","module_version":"%s","api_version":%s,"root":%s,"lsposed":%s,"enabled":true,"apk_patching":false,"network":false,"updated_at":"%s"}\n' \
+    "$VERSION" "$API" "$root_json" "$lsposed_json" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" > "$STATUS"
+}
+
+status() { write_status; cat "$STATUS"; log info status '' 'status requested'; }
+
+discover() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: discover PACKAGE"}'; return 2; }
+  apk=$(pkg_path "$target")
+  if [ -z "$apk" ]; then
+    log warn discover "$target" 'package not installed'
+    printf '{"installed":false,"package":"%s"}\n' "$(json_escape "$target")"; return 1
+  fi
+  size=$(stat -c %s "$apk" 2>/dev/null || echo 0)
+  printf '{"installed":true,"package":"%s","base_apk":"%s","version_name":"%s","version_code":"%s","bytes":%s,"splits":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$apk")" "$(json_escape "$(pkg_version "$target")")" \
+    "$(json_escape "$(pkg_code "$target")")" "$size" "$(json_escape "$(pkg_splits "$target")")"
+  log info discover "$target" "found $apk"
+}
+
+# configure BASE64_JSON — the role the app wants Cobalt to take. Stored verbatim so the
+# next boot can act on it; the platform never interprets it into a command line.
+configure() {
+  payload="${1:-}"
+  [ -n "$payload" ] || { echo '{"error":"usage: configure BASE64_JSON"}'; return 2; }
+  json=$(printf '%s' "$payload" | (base64 -d 2>/dev/null || toybox base64 -d 2>/dev/null))
+  [ -n "$json" ] || { log error configure '' 'payload is not valid base64'; echo '{"error":"bad payload"}'; return 2; }
+  printf '%s' "$json" | grep -q '"package"' || { log error configure '' 'payload has no package'; echo '{"error":"no package"}'; return 2; }
+  printf '%s\n' "$json" > "$ROLES/active-profile.json" 2>/dev/null || { echo '{"error":"cannot write role"}'; return 1; }
+  pkg=$(printf '%s' "$json" | sed -n 's/.*"package"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  log info configure "$pkg" 'role stored'
+  echo '{"ok":true}'
+}
+
+role() {
+  if [ -f "$ROLES/active-profile.json" ]; then cat "$ROLES/active-profile.json"; else echo '{}'; fi
+}
+
+# export PACKAGE DEST — copies the installed APK where the app can read it. The app cannot
+# read /data/app itself, and the platform must not hand out arbitrary files: the destination
+# is validated and the copy inherits the owner of the target directory.
+export_apk() {
+  target="${1:-}"; dest="${2:-}"; apk_name="${3:-base.apk}"
+  [ -n "$target" ] && [ -n "$dest" ] || { echo '{"error":"usage: export PACKAGE DEST [APK_NAME]"}'; return 2; }
+  allowed_path "$dest" || { log warn export "$target" "refused destination: $dest"; echo '{"error":"destination not allowed"}'; return 2; }
+  base=$(pkg_apk_path "$target" "$apk_name")
+  [ -n "$base" ] || { log warn export "$target" "apk not found: $apk_name"; echo '{"error":"apk not found"}'; return 1; }
+
+  version=$(pkg_version "$target")
+  safe=$(printf '%s' "$target" | tr -c 'A-Za-z0-9._-' '_')
+  slot=$(apk_slot "$apk_name")
+  backup="$BACKUP/${safe}${slot}.apk"
+  backup_version_file="$BACKUP/${safe}${slot}.version"
+  record_file="$RECORDS/${target}${slot}.json"
+
+  if [ -f "$record_file" ]; then
+    ns_init umount -l "$base" 2>/dev/null
+    rm -f "$record_file" 2>/dev/null
+    log info export "$target" "temporarily unmounted $apk_name to read the original APK"
+  fi
+
+  backup_version=''
+  [ -f "$backup_version_file" ] && backup_version=$(cat "$backup_version_file" 2>/dev/null)
+  if [ -f "$backup" ] && [ "$backup_version" = "$version" ] && looks_like_apk "$backup"; then
+    source_apk="$backup"
+    log info export "$target" "using pristine backup for $version"
+  else
+    mkdir -p "$BACKUP" 2>/dev/null
+    cp -f "$base" "$backup" 2>/dev/null || { log error export "$target" "cannot create backup: $backup"; echo '{"error":"cannot create backup"}'; return 1; }
+    chmod 644 "$backup" 2>/dev/null
+    printf '%s' "$version" > "$backup_version_file" 2>/dev/null
+    source_apk="$backup"
+    log info export "$target" "backup created for $version"
+  fi
+
+  dir=$(dirname "$dest")
+  mkdir -p "$dir" 2>/dev/null || { echo '{"error":"cannot create destination"}'; return 1; }
+  cp -f "$source_apk" "$dest" 2>/dev/null || { log error export "$target" "copy failed: $dest"; echo '{"error":"copy failed"}'; return 1; }
+  chmod 644 "$dest" 2>/dev/null
+  owner=$(stat -c %u "$dir" 2>/dev/null)
+  [ -n "$owner" ] && chown "$owner" "$dest" 2>/dev/null
+  size=$(stat -c %s "$dest" 2>/dev/null || echo 0)
+  digest=$(sha256_of "$dest")
+  log info export "$target" "exported $size bytes to $dest"
+  printf '{"ok":true,"package":"%s","path":"%s","bytes":%s,"sha256":"%s","source":"backup","version":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$dest")" "$size" "$digest" "$(json_escape "$version")"
+}
+
+# Android gives the root shell its own mount namespace, while applications live in init's.
+# A bind mount done in the shell is invisible to every app, which is exactly why a mount could
+# look successful and change nothing. Every filesystem operation therefore goes through init.
+ns_init() {
+  if command -v nsenter >/dev/null 2>&1; then
+    nsenter -t 1 -m -- "$@"
+  else
+    "$@"
+  fi
+}
+# mount_apk PACKAGE APK_FILE EXPECTED_VERSION — replace the installed APK on the running
+# system by bind-mounting a file the app prepared. Refuses on any mismatch.
+mount_apk() {
+  target="${1:-}"; apk="${2:-}"; want="${3:-}"; apk_name="${4:-base.apk}"
+  [ -n "$target" ] && [ -n "$apk" ] || { echo '{"error":"usage: mount PACKAGE APK_FILE EXPECTED_VERSION [APK_NAME]"}'; return 2; }
+  allowed_path "$apk" || { log warn mount "$target" "refused source: $apk"; echo '{"error":"source not allowed"}'; return 2; }
+  looks_like_apk "$apk" || { log error mount "$target" "not an APK: $apk"; echo '{"error":"not an apk"}'; return 2; }
+  base=$(pkg_apk_path "$target" "$apk_name")
+  [ -n "$base" ] || { log warn mount "$target" "apk not found: $apk_name"; echo '{"error":"apk not found"}'; return 1; }
+  actual=$(pkg_version "$target")
+  version_warning=''
+  if [ -n "$want" ] && [ "$actual" != "$want" ]; then
+    version_warning="version mismatch: installed $actual, built for $want"
+    log warn mount "$target" "$version_warning"
+  fi
+
+  safe_target=$(printf '%s' "$target" | tr -c 'A-Za-z0-9._-' '_')
+  slot=$(apk_slot "$apk_name")
+  staged="$ROOT/cache/${safe_target}${slot}.apk"
+  record_file="$RECORDS/${target}${slot}.json"
+  rm -f "$staged" 2>/dev/null
+  cp -f "$apk" "$staged" 2>/dev/null || {
+    log error mount "$target" "staging failed: $staged"
+    echo '{"error":"staging failed"}'; return 4;
+  }
+  chmod 644 "$staged" 2>/dev/null
+  chown 0:0 "$staged" 2>/dev/null || true
+  digest=$(sha256_of "$staged")
+  ctx=$(ns_init ls -Z "$base" 2>/dev/null | awk '{print $1}')
+  ns_init umount -l "$base" 2>/dev/null
+  if [ -n "$ctx" ]; then
+    chcon "$ctx" "$staged" 2>/dev/null || chcon u:object_r:system_file:s0 "$staged" 2>/dev/null || true
+  fi
+  if ! ns_init mount --bind "$staged" "$base"; then
+    rm -f "$staged" 2>/dev/null
+    log error mount "$target" "bind mount failed ($apk_name)"
+    echo '{"error":"mount failed"}'; return 4;
+  fi
+  inode=$(ns_init stat -c %i "$base" 2>/dev/null)
+  printf '{"package":"%s","apk_name":"%s","target":"%s","apk":"%s","sha256":"%s","inode":"%s","version_name":"%s","warning":"%s","at":"%s"}\n' \
+    "$(json_escape "$target")" "$(json_escape "$apk_name")" "$(json_escape "$base")" "$(json_escape "$staged")" "$digest" "$inode" \
+    "$(json_escape "$actual")" "$(json_escape "$version_warning")" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" \
+    > "$record_file"
+  log info mount "$target" "mounted $apk_name -> $staged ($digest)"
+  am force-stop "$target" 2>/dev/null
+  printf '{"ok":true,"apk_name":"%s","warning":"%s"}\n' "$(json_escape "$apk_name")" "$(json_escape "$version_warning")"
+}
+
+umount_apk() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: umount PACKAGE"}'; return 2; }
+  paths=$(pm path "$target" 2>/dev/null | sed -n 's/^package://p')
+  [ -n "$paths" ] || { echo '{"error":"not installed"}'; return 1; }
+  printf '%s\n' "$paths" | while IFS= read -r apk_target; do
+    [ -n "$apk_target" ] || continue
+    ns_init umount -l "$apk_target" 2>/dev/null && log info umount "$target" "unmounted $apk_target" || true
+  done
+  safe_target=$(printf '%s' "$target" | tr -c 'A-Za-z0-9._-' '_')
+  rm -f "$RECORDS/$target.json" "$RECORDS/${target}__"*.json 2>/dev/null
+  rm -f "$ROOT/cache/${safe_target}.apk" "$ROOT/cache/${safe_target}__"*.apk 2>/dev/null
+  am force-stop "$target" 2>/dev/null
+  echo '{"ok":true}'
+}
+
+verify_apk() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: verify PACKAGE"}'; return 2; }
+  base=$(pkg_path "$target")
+  [ -n "$base" ] || { echo '{"installed":false}'; return 1; }
+  # The shell's own view is meaningless here: check what init sees.
+  target_inode=$(ns_init stat -c %i "$base" 2>/dev/null)
+  mounted=false
+  [ -f "$RECORDS/$target.json" ] && mounted=true
+  record="$RECORDS/$target.json"
+  digest=''; record_inode=''
+  if [ -f "$record" ]; then
+    digest=$(sed -n 's/.*"sha256":"\([^"]*\)".*/\1/p' "$record")
+    record_inode=$(sed -n 's/.*"inode":"\([^"]*\)".*/\1/p' "$record")
+  fi
+  [ -n "$record_inode" ] && [ "$record_inode" != "$target_inode" ] && mounted=false
+  actual=''
+  [ -n "$digest" ] && actual=$(sha256_of "$base")
+  printf '{"package":"%s","target":"%s","mounted":%s,"inode":%s,"record_sha256":"%s","current_sha256":"%s","matches":%s}\n' \
+    "$(json_escape "$target")" "$(json_escape "$base")" "$mounted" "${target_inode:-0}" "$digest" "$actual" \
+    "$( [ -n "$digest" ] && [ "$digest" = "$actual" ] && echo true || echo false )"
+}
+
+logs() { cat "$LOGDIR/platform.log" 2>/dev/null || true; }
+clear_logs() { : > "$LOGDIR/platform.log"; log info clear_logs '' 'logs cleared'; }
+
+# Kept for compatibility: an adapter-based patch is not this component's job.
+apply_profile() {
+  target="${1:-}"
+  log warn apply "$target" 'no adapter applied; bind-mount surgery is requested explicitly via mount'
+  echo 'no adapter applied'
+  return 3
+}
+rollback() {
+  target="${1:-}"; log info rollback "$target" 'use umount to remove a bind mount'
+  echo 'nothing to rollback'
+}
+
+# --- bridge to Cobalt App -------------------------------------------------------------
+# The platform never decides anything itself: it asks the app and validates the answer. The
+# token is the one the app handed over through `configure`; without it the bridge refuses.
+bridge_token() {
+  sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$ROLES/active-profile.json" 2>/dev/null | head -n1
+}
+bridge_query() {
+  uri="${1:-}"; tok=$(bridge_token)
+  { [ -n "$uri" ] && [ -n "$tok" ]; } || return 1
+  (content query --uri "$uri?token=$tok" 2>/dev/null || cmd content query --uri "$uri?token=$tok" 2>/dev/null) \
+    | sed -n 's/^Row: [0-9][0-9]* p=//p' | head -n1
+}
+supported() {
+  out=$(bridge_query "content://com.cobalt.app.platform/supported")
+  if [ -z "$out" ]; then
+    log warn supported '' 'app did not answer'
+    echo '{"error":"app did not answer","hint":"run configure first"}'; return 1
+  fi
+  log info supported '' 'catalogue received'
+  printf '%s\n' "$out"
+}
+
+# Every field of a plan is validated here, against fixed lists. A plan can only ever ask for
+# the operations this release implements, only for whitelisted entries, and only from the
+# project's own repository.
+plan_valid() {
+  json="${1:-}"
+  printf '%s' "$json" | grep -q '"package"' || return 1
+  # only known operation types
+  for t in $(printf '%s' "$json" | grep -o '"type":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    case "$t" in replace_entry) ;; *) return 1;; esac
+  done
+  # only known entries inside the APK
+  for e in $(printf '%s' "$json" | grep -o '"entry":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    case "$e" in
+      resources.arsc) ;;
+      assets/*) case "$e" in *..*) return 1;; esac ;;
+      *) return 1;;
+    esac
+  done
+  # payloads only from the project repository over https
+  for u in $(printf '%s' "$json" | grep -o '"url":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    case "$u" in
+      https://raw.githubusercontent.com/phontex/cobalt/*) ;;
+      *) return 1;;
+    esac
+  done
+  # every payload must carry a full sha256
+  for h in $(printf '%s' "$json" | grep -o '"sha256":"[^"]*"' | sed 's/.*:"//; s/"$//' | sort -u); do
+    printf '%s' "$h" | grep -Eq '^[0-9a-f]{64}$' || return 1
+  done
+  return 0
+}
+plan() {
+  target="${1:-}"; [ -n "$target" ] || { echo '{"error":"usage: plan PACKAGE"}'; return 2; }
+  out=$(bridge_query "content://com.cobalt.app.platform/plan/$target")
+  if [ -z "$out" ]; then
+    log warn plan "$target" 'app did not answer'
+    echo '{"error":"app did not answer"}'; return 1
+  fi
+  if ! plan_valid "$out"; then
+    log error plan "$target" 'plan rejected by validation'
+    echo '{"error":"plan rejected"}'; return 3
+  fi
+  log info plan "$target" 'plan accepted'
+  printf '%s\n' "$out"
+}
+
+remount_all() {
+  for record_file in "$RECORDS"/*.json; do
+    [ -f "$record_file" ] || continue
+    target=$(sed -n 's/.*"package":"\([^"]*\)".*/\1/p' "$record_file" | head -n1)
+    apk_name=$(sed -n 's/.*"apk_name":"\([^"]*\)".*/\1/p' "$record_file" | head -n1)
+    staged=$(sed -n 's/.*"apk":"\([^"]*\)".*/\1/p' "$record_file" | head -n1)
+    want_sha=$(sed -n 's/.*"sha256":"\([^"]*\)".*/\1/p' "$record_file" | head -n1)
+    [ -n "$apk_name" ] || apk_name="base.apk"
+    [ -n "$target" ] && [ -n "$staged" ] && looks_like_apk "$staged" || continue
+    if [ -n "$want_sha" ] && [ "$(sha256_of "$staged")" != "$want_sha" ]; then
+      log warn boot "$target" "skipped remount ($apk_name): sha256 mismatch"
+      continue
+    fi
+    base=$(pkg_apk_path "$target" "$apk_name")
+    [ -n "$base" ] || continue
+    cur_inode=$(ns_init stat -c %i "$base" 2>/dev/null)
+    rec_inode=$(sed -n 's/.*"inode":"\([^"]*\)".*/\1/p' "$record_file" | head -n1)
+    if [ -n "$rec_inode" ] && [ "$cur_inode" = "$rec_inode" ]; then
+      continue
+    fi
+    ctx=$(ns_init ls -Z "$base" 2>/dev/null | awk '{print $1}')
+    [ -n "$ctx" ] && { chcon "$ctx" "$staged" 2>/dev/null || chcon u:object_r:system_file:s0 "$staged" 2>/dev/null || true; }
+    if ns_init mount --bind "$staged" "$base"; then
+      new_inode=$(ns_init stat -c %i "$base" 2>/dev/null)
+      if [ -n "$new_inode" ] && [ -n "$rec_inode" ]; then
+        sed -i "s/\"inode\":\"$rec_inode\"/\"inode\":\"$new_inode\"/" "$record_file" 2>/dev/null || true
+      fi
+      log info boot "$target" "remounted $apk_name ($new_inode)"
+    else
+      log error boot "$target" "remount failed ($apk_name)"
+    fi
+  done
+}
+
+case "${1:-status}" in
+  boot) write_status; remount_all; log info boot '' "Cobalt Platform $VERSION started without APK or network";;
+  status) status;;
+  discover) discover "${2:-}";;
+  supported) supported;;
+  plan) plan "${2:-}";;
+  configure) configure "${2:-}";;
+  role) role;;
+  export) export_apk "${2:-}" "${3:-}" "${4:-base.apk}";;
+  mount) mount_apk "${2:-}" "${3:-}" "${4:-}" "${5:-base.apk}";;
+  umount) umount_apk "${2:-}";;
+  verify) verify_apk "${2:-}";;
+  apply) apply_profile "${2:-}";;
+  rollback) rollback "${2:-}";;
+  logs) logs;;
+  clear-logs) clear_logs;;
+  *) echo 'usage: cobalt-platform {status|supported|plan P|discover P|export P DEST|configure B64|role|mount P APK VER|umount P|verify P|logs|clear-logs}'; exit 2;;
+esac

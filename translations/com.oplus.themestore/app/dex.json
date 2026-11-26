@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "package": "com.oplus.themestore",
+  "layer": "app",
+  "section": "dex",
+  "language": "ru",
+  "language_name": "Русский",
+  "entries": {},
+  "notes": [
+    "Каталог DEX не прислан."
+  ]
+}

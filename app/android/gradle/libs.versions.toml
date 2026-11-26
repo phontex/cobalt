@@ -1,0 +1,77 @@
+[versions]
+agp = "9.1.0"
+coreKtx = "1.18.0"
+junit = "4.13.2"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+lifecycleRuntimeKtx = "2.10.0"
+activityCompose = "1.13.0"
+kotlin = "2.4.10"
+composeBom = "2026.08.00"
+material3Expressive = "1.5.0-alpha27"
+couiCompose = "1.9.3"
+couiComposeWindowSize = "1.9.0"
+couiCapsule = "2.1.1-patch2"
+kyantShapes = "1.2.1"
+couiAndroidxWindow = "1.5.0"
+libxposed = "102.0.0"
+palette = "1.0.0"
+androidxNavigation3 = "1.1.4"
+kotlinxSerialization = "1.11.0"
+couiFoundation = "1.11.1"
+couiNavigationEvent = "1.1.2"
+couiCollection = "1.6.0"
+couiLifecycle = "2.11.0"
+couiMaterialKolor = "5.0.0"
+libsu = "6.0.0"
+hiddenApiBypass = "4.3"
+dynamicAnimation = "1.1.0"
+dexkit = "2.3.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Expressive" }
+androidx-compose-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+coui-compose-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "couiCompose" }
+coui-compose-window-size = { module = "org.jetbrains.compose.material3:material3-window-size-class", version.ref = "couiComposeWindowSize" }
+coui-gaze-capsule = { module = "com.mocharealm.gaze:capsule", version.ref = "couiCapsule" }
+kyant-shapes = { module = "io.github.kyant0:shapes", version.ref = "kyantShapes" }
+coui-androidx-window = { group = "androidx.window", name = "window", version.ref = "couiAndroidxWindow" }
+libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed" }
+libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed" }
+androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "palette" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "androidxNavigation3" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+coui-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "couiFoundation" }
+coui-navigation-event = { module = "androidx.navigationevent:navigationevent-compose", version.ref = "couiNavigationEvent" }
+coui-collection = { module = "androidx.collection:collection", version.ref = "couiCollection" }
+coui-lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime", version.ref = "couiLifecycle" }
+coui-lifecycle-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "couiLifecycle" }
+coui-material-kolor = { module = "com.materialkolor:material-color-utilities", version.ref = "couiMaterialKolor" }
+libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
+libsu-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsu" }
+hidden-api-bypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", version.ref = "hiddenApiBypass" }
+androidx-dynamicanimation = { module = "androidx.dynamicanimation:dynamicanimation", version.ref = "dynamicAnimation" }
+dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "couiCompose" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

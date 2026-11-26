@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colour of the window itself, shown before Compose draws (cold start, resize).
+         Without it the platform theme supplied a black window background. -->
+    <color name="cobalt_window">#F6F2EA</color>
+</resources>

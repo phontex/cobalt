@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "date": "2026-11-27",
+      "path": "changes/2026-11-27-initial.md",
+      "summary": {
+        "added": 15534,
+        "changed": 0,
+        "removed": 0,
+        "by_layer": {
+          "com.heytap.themestore/app": {
+            "added": 4367,
+            "changed": 0,
+            "removed": 0
+          },
+          "com.heytap.themestore/platform": {
+            "added": 6638,
+            "changed": 0,
+            "removed": 0
+          },
+          "com.oplus.themestore/app": {
+            "added": 4529,
+            "changed": 0,
+            "removed": 0
+          }
+        }
+      }
+    }
+  ]
+}

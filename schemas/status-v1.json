@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cobalt Platform status v1",
+  "type": "object",
+  "required": ["module_id", "module_version", "api_version", "enabled"],
+  "properties": {
+    "module_id": {"const": "cobalt-platform"},
+    "module_version": {"type": "string"},
+    "api_version": {"type": "integer", "minimum": 1},
+    "root": {"type": "boolean"},
+    "enabled": {"type": "boolean"},
+    "apk_patching": {"type": "boolean"},
+    "network": {"type": "boolean"},
+    "updated_at": {"type": "string"}
+  },
+  "additionalProperties": true
+}

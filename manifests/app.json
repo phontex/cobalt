@@ -1,0 +1,8 @@
+{
+  "product": "cobalt-app",
+  "latest_version": "1.0.0",
+  "channel": "stable",
+  "download": "https://github.com/phontex/cobalt/releases/download/app-v1.0.0/Cobalt_v1.0.0.apk",
+  "sha256": "",
+  "min_platform_api": 7
+}

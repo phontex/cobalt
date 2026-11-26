@@ -1,0 +1,34 @@
+name: Build translation catalog
+
+on:
+  push:
+    paths:
+      - "translations/**/*.json"
+      - "tools/update_translations.py"
+      - ".github/workflows/translations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Validate and build layers
+        run: python3 tools/update_translations.py
+      - name: Commit generated catalog and changelog
+        run: |
+          git config user.name "cobalt-translation-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add translations manifests/catalog.json changes
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "Update translation catalog and changelog"
+          git push

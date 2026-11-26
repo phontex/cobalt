@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cobalt catalog v3",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "product",
+    "apps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 3
+    },
+    "product": {
+      "const": "cobalt-catalog"
+    },
+    "updated": {
+      "type": "string"
+    },
+    "min_app_version_code": {
+      "type": "integer"
+    },
+    "apps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "package",
+          "name",
+          "layers"
+        ],
+        "properties": {
+          "package": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "compatibility": {
+            "type": "object",
+            "properties": {
+              "policy": {
+                "enum": [
+                  "warn",
+                  "strict"
+                ]
+              },
+              "verified_versions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          },
+          "layers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "served_by",
+                "language"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "runtime",
+                    "apk_resources",
+                    "resource_map"
+                  ]
+                },
+                "served_by": {
+                  "enum": [
+                    "app",
+                    "platform"
+                  ]
+                },
+                "scope": {
+                  "type": "string",
+                  "description": "apk | server | apk+server"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "language_name": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "content_id": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "bytes": {
+                  "type": "integer"
+                },
+                "entries": {
+                  "type": "integer"
+                },
+                "verified_version": {
+                  "type": "string"
+                },
+                "available": {
+                  "type": "boolean"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "entry": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    },
+                    "bytes": {
+                      "type": "integer"
+                    },
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "entry": {
+                  "type": "string"
+                },
+                "changelog_path": {
+                  "type": "string"
+                },
+                "change_summary": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "changelog": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "latest": {
+          "type": "string"
+        },
+        "updated": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

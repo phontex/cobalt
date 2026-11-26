@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "selection": "exact_package_then_version",
+  "profiles": [
+    {
+      "id": "heytap-themestore-17.23.0",
+      "package": "com.heytap.themestore",
+      "version_name": "17.23.0",
+      "version_code": 1723003,
+      "path": "profiles/com.heytap.themestore/17.23.0/profile.json"
+    },
+    {
+      "id": "heytap-themestore-17.11.18",
+      "package": "com.heytap.themestore",
+      "version_name": "17.11.18",
+      "version_code": null,
+      "path": "profiles/com.heytap.themestore/17.11.18/profile.json"
+    },
+    {
+      "id": "heytap-themestore-17.22.1",
+      "package": "com.heytap.themestore",
+      "version_name": "17.22.1",
+      "version_code": 1722010,
+      "path": "profiles/com.heytap.themestore/17.22.1/profile.json"
+    },
+    {
+      "id": "oplus-themestore-EXP_17.11.20",
+      "package": "com.oplus.themestore",
+      "version_name": "EXP_17.11.20",
+      "version_code": 1711200,
+      "path": "profiles/com.oplus.themestore/EXP_17.11.20/profile.json"
+    }
+  ]
+}
