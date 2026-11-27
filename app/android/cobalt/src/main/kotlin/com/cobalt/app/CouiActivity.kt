@@ -180,10 +180,10 @@ class CouiActivity : ComponentActivity() {
 
         val templateOf: (String) -> String = { templates[it] ?: "none" }
         val chapters = listOf(
-            "I · Главная",
-            "II · Приложения",
-            "III · Оформление",
-            "IV · О проекте",
+            "Главная",
+            "Приложения",
+            "Настройки",
+            "О проекте",
         )
 
         CompositionLocalProvider(LocalBarInset provides 24.dp) {
@@ -192,15 +192,15 @@ class CouiActivity : ComponentActivity() {
                     .fillMaxSize()
                     .background(c.background)
                     .safeDrawingPadding()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(start = 0.dp, end = 8.dp, top = 6.dp, bottom = 8.dp),
             ) {
-                Box(Modifier.weight(1f).fillMaxWidth()) {
+                BookDeck(Modifier.weight(1f).fillMaxWidth()) {
                     HorizontalPager(
                         state = pagerState,
                         beyondViewportPageCount = 1,
                         modifier = Modifier.fillMaxSize(),
                     ) { pageIndex ->
-                        val pageOffset = (pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction
+                        val pageOffset = (pageIndex - pagerState.currentPage) - pagerState.currentPageOffsetFraction
                         BookSheet(
                             modifier = Modifier.fillMaxSize(),
                             pageOffset = pageOffset,
@@ -247,11 +247,11 @@ class CouiActivity : ComponentActivity() {
                         targetState = overlay,
                         label = "bookOverlay",
                         transitionSpec = {
-                            (fadeIn(tween(240, easing = ease)) +
-                                slideInHorizontally(tween(340, easing = ease)) { it })
+                            (fadeIn(tween(220, easing = ease)) +
+                                slideInHorizontally(tween(300, easing = ease)) { it })
                                 .togetherWith(
-                                    fadeOut(tween(200, easing = ease)) +
-                                        slideOutHorizontally(tween(280, easing = ease)) { it },
+                                    fadeOut(tween(180, easing = ease)) +
+                                        slideOutHorizontally(tween(260, easing = ease)) { it },
                                 )
                         },
                     ) { activeOverlay ->
@@ -261,9 +261,9 @@ class CouiActivity : ComponentActivity() {
                                 pageOffset = 0f,
                             ) {
                                 BookRunningHeader(
-                                    chapter = "Профиль · ${selected.label}",
-                                    pageNumber = 2,
-                                    totalPages = chapters.size,
+                                    chapter = selected.label,
+                                    pageNumber = 1,
+                                    totalPages = 1,
                                     onBack = { overlay = null },
                                     trailing = { ProfileRestartAction(selected) },
                                 )
@@ -301,9 +301,9 @@ class CouiActivity : ComponentActivity() {
                                 pageOffset = 0f,
                             ) {
                                 BookRunningHeader(
-                                    chapter = "Каталог обновлений",
-                                    pageNumber = pagerState.currentPage + 1,
-                                    totalPages = chapters.size,
+                                    chapter = "Обновления",
+                                    pageNumber = 1,
+                                    totalPages = 1,
                                     onBack = { overlay = null; updateFocusPackage = null },
                                 )
                                 BookLeaf {
@@ -320,14 +320,9 @@ class CouiActivity : ComponentActivity() {
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
                 BookRibbonBar(
-                    chapters = listOf(
-                        "I · Главная",
-                        "II · Прил.",
-                        "III · Вид",
-                        "IV · Инфо",
-                    ),
+                    chapters = chapters,
                     selected = pagerState.currentPage,
                 ) { targetPage ->
                     overlay = null
@@ -466,18 +461,15 @@ class CouiActivity : ComponentActivity() {
             Spacer(Modifier.height(SoftSpace.group))
             SoftGroup {
                 SoftRow("Диагностика", "Журнал системных операций", onClick = onOpenLogs)
-            }
-
-            SoftSectionTitle("Разделы книги")
-            SoftGroup {
-                SoftRow("Приложения", "Профили и языковые слои ColorOS", onClick = onOpenApps)
                 SoftDivider()
-                SoftRow("Оформление", "Тема, акценты, размер текста и обновления", onClick = onOpenSettings)
+                SoftRow("Приложения", "Профили и языковые слои", onClick = onOpenApps)
+                SoftDivider()
+                SoftRow("Настройки", "Тема, акцент, текст и обновления", onClick = onOpenSettings)
             }
 
             SoftNote(
-                "Листайте страницы свайпом или кнопками закладки внизу экрана.",
-                Modifier.padding(top = 22.dp),
+                "Cobalt — независимый проект, не связанный с OPPO, OnePlus и Realme.",
+                Modifier.padding(top = 20.dp),
             )
         }
     }
@@ -498,7 +490,7 @@ class CouiActivity : ComponentActivity() {
             status.lsposed != CobaltCheckState.ACTIVE -> "Включите модуль Cobalt в LSPosed и добавьте приложения в область действия."
             else -> "Подключите Cobalt Platform для системных операций."
         }
-        SoftCard(tone = if (active == 3) CardTone.RAISED else CardTone.ACCENT) {
+        SoftCard(tone = CardTone.RAISED) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Text(summary, style = CobaltType.title, color = c.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -766,7 +758,7 @@ class CouiActivity : ComponentActivity() {
         val c = LocalDesign.current
 
         BookLeaf {
-            SoftPageTitle(title = "Оформление", subtitle = "Внешний вид книги и проверка обновлений")
+            SoftPageTitle(title = "Настройки", subtitle = "Тема, цвета, текст и обновления")
 
             SoftSectionTitle("Тема")
             SoftGroup {
@@ -780,7 +772,7 @@ class CouiActivity : ComponentActivity() {
                 }
                 if (themeMode == "system") {
                     SoftDivider(start = 0.dp, end = 0.dp)
-                    SoftToggleRow("AMOLED в тёмной теме", "Глубокий чёрный фон вместо тёмного переплёта", systemAmoled, onSystemAmoled)
+                    SoftToggleRow("AMOLED в тёмной теме", "Чёрный фон вместо тёмно-серого", systemAmoled, onSystemAmoled)
                 }
             }
 
@@ -820,7 +812,7 @@ class CouiActivity : ComponentActivity() {
                     SoftWell {
                         Text("ColorOS на вашем языке", style = CobaltType.bodyStrong, color = c.text)
                         Text(
-                            "Так выглядит книжная вёрстка и типографика на страницах Cobalt.",
+                            "Пример отображения текста в приложении.",
                             style = CobaltType.caption,
                             color = c.muted,
                             modifier = Modifier.padding(top = 4.dp),

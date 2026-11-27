@@ -71,10 +71,10 @@ import androidx.compose.ui.zIndex
 import kotlin.math.abs
 
 object SoftShape {
-    val page = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 22.dp, bottomEnd = 22.dp)
-    val card = RoundedCornerShape(16.dp)
-    val inner = RoundedCornerShape(12.dp)
-    val control = RoundedCornerShape(11.dp)
+    val page = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 20.dp, bottomEnd = 20.dp)
+    val card = RoundedCornerShape(14.dp)
+    val inner = RoundedCornerShape(10.dp)
+    val control = RoundedCornerShape(10.dp)
     val pill = RoundedCornerShape(percent = 50)
 }
 
@@ -101,18 +101,15 @@ private fun blend(base: Color, overlay: Color, fraction: Float): Color = Color(
 private fun Color.faded(): Color = copy(alpha = 0f)
 
 fun Modifier.bookPageTurn(pageOffset: Float): Modifier = this
-    .zIndex(if (pageOffset >= 0f) 1f else 0f)
     .graphicsLayer {
         transformOrigin = TransformOrigin(0f, 0.5f)
-        cameraDistance = 18f * density
+        cameraDistance = 20f * density
         val clamped = pageOffset.coerceIn(-1f, 1f)
-        translationX = clamped * size.width
-        if (clamped > 0f) {
-            rotationY = -clamped * 94f
-            alpha = if (clamped > 0.78f) ((1f - clamped) / 0.22f).coerceIn(0f, 1f) else 1f
-        } else if (clamped < 0f) {
-            val reveal = 1f - abs(clamped)
-            val s = 0.965f + reveal * 0.035f
+        if (clamped < 0f) {
+            rotationY = clamped * 44f
+        } else if (clamped > 0f) {
+            rotationY = clamped * 22f
+            val s = 1f - clamped * 0.025f
             scaleX = s
             scaleY = s
         }
@@ -120,30 +117,60 @@ fun Modifier.bookPageTurn(pageOffset: Float): Modifier = this
     .drawWithContent {
         drawContent()
         val clamped = pageOffset.coerceIn(-1f, 1f)
-        if (clamped > 0f) {
-            val foldAlpha = (clamped * 0.28f).coerceIn(0f, 0.28f)
+        val amount = abs(clamped)
+        if (amount > 0.01f) {
+            val shade = (amount * 0.14f).coerceIn(0f, 0.14f)
             drawRect(
                 brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Black.copy(alpha = foldAlpha * 0.45f),
-                        Color.Transparent,
-                        Color.Black.copy(alpha = foldAlpha),
-                    ),
-                ),
-            )
-        } else if (clamped < 0f) {
-            val castAlpha = (abs(clamped) * 0.36f).coerceIn(0f, 0.36f)
-            drawRect(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Black.copy(alpha = castAlpha),
-                        Color.Black.copy(alpha = castAlpha * 0.35f),
-                        Color.Transparent,
-                    ),
+                    colors = if (clamped < 0f) {
+                        listOf(
+                            Color.Black.copy(alpha = shade * 0.4f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = shade),
+                        )
+                    } else {
+                        listOf(
+                            Color.Black.copy(alpha = shade),
+                            Color.Transparent,
+                        )
+                    },
                 ),
             )
         }
     }
+
+@Composable
+fun BookDeck(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val c = LocalDesign.current
+    Box(modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(end = 0.dp, top = 7.dp, bottom = 7.dp)
+                .clip(SoftShape.page)
+                .background(blend(c.surface, c.line, 0.5f))
+                .border(1.dp, c.line, SoftShape.page),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(end = 4.dp, top = 3.dp, bottom = 3.dp)
+                .clip(SoftShape.page)
+                .background(blend(c.surface, c.line, 0.24f))
+                .border(1.dp, c.line, SoftShape.page),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(end = 8.dp),
+        ) {
+            content()
+        }
+    }
+}
 
 @Composable
 fun BookSheet(
@@ -152,72 +179,40 @@ fun BookSheet(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = LocalDesign.current
-    val spineShade = if (c.dark) Color.Black.copy(alpha = 0.42f) else Color(0xFF1A1712).copy(alpha = 0.08f)
-    val stackEdge = blend(c.surface, c.line, 0.45f)
+    val spineShade = if (c.dark) Color.Black.copy(alpha = 0.36f) else Color(0xFF1A1712).copy(alpha = 0.065f)
 
     Box(
         modifier
             .fillMaxSize()
-            .padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 6.dp)
-            .bookPageTurn(pageOffset),
-    ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(start = 6.dp, top = 5.dp, bottom = 5.dp)
-                .offset(x = 5.dp)
-                .clip(SoftShape.page)
-                .background(stackEdge)
-                .border(1.dp, c.line, SoftShape.page),
-        )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(start = 3.dp, top = 2.dp, bottom = 2.dp)
-                .offset(x = 2.5.dp)
-                .clip(SoftShape.page)
-                .background(blend(c.surface, c.line, 0.22f))
-                .border(1.dp, c.line, SoftShape.page),
-        )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .shadow(
-                    elevation = if (c.dark) 0.dp else 10.dp,
-                    shape = SoftShape.page,
-                    ambientColor = Color.Black.copy(alpha = 0.08f),
-                    spotColor = Color.Black.copy(alpha = 0.12f),
-                )
-                .clip(SoftShape.page)
-                .background(c.surface)
-                .border(1.dp, c.line, SoftShape.page)
-                .drawWithContent {
-                    drawContent()
-                    val spineWidth = 18.dp.toPx()
-                    drawRect(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(spineShade, Color.Transparent),
-                            startX = 0f,
-                            endX = spineWidth,
-                        ),
-                        size = Size(spineWidth, size.height),
-                    )
-                    val stitchX = 9.dp.toPx()
-                    drawLine(
-                        color = c.line.copy(alpha = if (c.dark) 0.65f else 0.9f),
-                        start = Offset(stitchX, 0f),
-                        end = Offset(stitchX, size.height),
-                        strokeWidth = 1.dp.toPx(),
-                    )
-                },
-        ) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(start = 18.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-                content = content,
+            .bookPageTurn(pageOffset)
+            .shadow(
+                elevation = if (c.dark) 0.dp else 6.dp,
+                shape = SoftShape.page,
+                ambientColor = Color.Black.copy(alpha = 0.05f),
+                spotColor = Color.Black.copy(alpha = 0.08f),
             )
-        }
+            .clip(SoftShape.page)
+            .background(c.surface)
+            .border(1.dp, c.line, SoftShape.page)
+            .drawWithContent {
+                drawContent()
+                val spineWidth = 14.dp.toPx()
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(spineShade, Color.Transparent),
+                        startX = 0f,
+                        endX = spineWidth,
+                    ),
+                    size = Size(spineWidth, size.height),
+                )
+            },
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 10.dp),
+            content = content,
+        )
     }
 }
 
@@ -230,7 +225,7 @@ fun BookRunningHeader(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val c = LocalDesign.current
-    Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -240,9 +235,9 @@ fun BookRunningHeader(
                 Spacer(Modifier.width(10.dp))
             }
             Text(
-                chapter.uppercase(),
-                style = CobaltType.label,
-                color = c.faint,
+                chapter,
+                style = CobaltType.micro.copy(fontWeight = FontWeight.W600),
+                color = c.muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -251,16 +246,16 @@ fun BookRunningHeader(
                 trailing()
                 Spacer(Modifier.width(10.dp))
             }
-            Text(
-                "Стр. %02d / %02d".format(pageNumber, totalPages),
-                style = CobaltType.monoSmall,
-                color = c.muted,
-            )
+            if (totalPages > 1) {
+                Text(
+                    "$pageNumber / $totalPages",
+                    style = CobaltType.monoSmall,
+                    color = c.faint,
+                )
+            }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
-        Spacer(Modifier.height(2.dp))
-        Box(Modifier.fillMaxWidth().height(0.6.dp).background(c.line.copy(alpha = 0.55f)))
     }
 }
 
@@ -272,11 +267,11 @@ fun BookRibbonBar(
     onSelect: (Int) -> Unit,
 ) {
     val c = LocalDesign.current
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 16.dp, bottomEnd = 16.dp)
     Row(
         modifier
             .fillMaxWidth()
-            .shadow(if (c.dark) 0.dp else 8.dp, shape, ambientColor = Color.Black.copy(alpha = .05f), spotColor = Color.Black.copy(alpha = .08f))
+            .padding(end = 8.dp)
             .clip(shape)
             .background(c.surface)
             .border(1.dp, c.line, shape)
@@ -284,11 +279,6 @@ fun BookRibbonBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        BookFlipArrow(
-            text = "‹",
-            enabled = selected > 0,
-            onClick = { if (selected > 0) onSelect(selected - 1) },
-        )
         chapters.forEachIndexed { index, label ->
             val active = index == selected
             val interaction = ownInteraction()
@@ -305,10 +295,9 @@ fun BookRibbonBar(
             Box(
                 Modifier
                     .weight(1f)
-                    .height(44.dp)
+                    .height(40.dp)
                     .clip(SoftShape.control)
                     .background(tone)
-                    .then(if (active) Modifier.border(1.dp, c.accent.copy(alpha = if (c.dark) .4f else .22f), SoftShape.control) else Modifier)
                     .selectable(
                         selected = active,
                         role = Role.Tab,
@@ -316,67 +305,21 @@ fun BookRibbonBar(
                         indication = null,
                         onClick = { onSelect(index) },
                     )
-                    .padding(horizontal = 3.dp),
+                    .padding(horizontal = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                val parts = label.split(" · ", limit = 2)
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (parts.size == 2) {
-                        Text(
-                            parts[0],
-                            style = CobaltType.label.copy(fontSize = 10.sp, lineHeight = 12.sp),
-                            color = if (active) c.accent else c.faint,
-                            maxLines = 1,
-                        )
-                        Text(
-                            parts[1],
-                            style = CobaltType.micro.copy(
-                                fontSize = 10.5.sp,
-                                lineHeight = 13.sp,
-                                fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
-                            ),
-                            color = if (active) c.accent else c.muted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    } else {
-                        Text(
-                            label,
-                            style = CobaltType.micro.copy(fontWeight = if (active) FontWeight.W600 else FontWeight.W500),
-                            color = if (active) c.accent else c.muted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+                Text(
+                    label,
+                    style = CobaltType.micro.copy(
+                        fontSize = 12.sp,
+                        fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
+                    ),
+                    color = if (active) c.accent else c.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
-        BookFlipArrow(
-            text = "›",
-            enabled = selected < chapters.lastIndex,
-            onClick = { if (selected < chapters.lastIndex) onSelect(selected + 1) },
-        )
-    }
-}
-
-@Composable
-private fun BookFlipArrow(text: String, enabled: Boolean, onClick: () -> Unit) {
-    val c = LocalDesign.current
-    val interaction = ownInteraction()
-    val pressed by interaction.collectIsPressedAsState()
-    Box(
-        Modifier
-            .size(34.dp, 38.dp)
-            .clip(SoftShape.control)
-            .background(if (pressed && enabled) c.well else Color.Transparent)
-            .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text,
-            style = CobaltType.title.copy(fontSize = 18.sp),
-            color = if (enabled) c.text else c.line,
-        )
     }
 }
 
@@ -515,15 +458,13 @@ fun SoftAction(
 
 @Composable
 fun SoftSectionTitle(text: String) {
-    val c = LocalDesign.current
-    Row(
-        Modifier.fillMaxWidth().padding(top = SoftSpace.section, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("§", style = CobaltType.label, color = c.accent, modifier = Modifier.padding(end = 6.dp))
-        Text(text.uppercase(), style = CobaltType.label, color = c.faint, maxLines = 1)
-        Box(Modifier.weight(1f).padding(start = 10.dp).height(1.dp).background(c.line))
-    }
+    Text(
+        text,
+        style = CobaltType.micro.copy(fontWeight = FontWeight.W600),
+        color = LocalDesign.current.faint,
+        maxLines = 1,
+        modifier = Modifier.fillMaxWidth().padding(top = SoftSpace.section, bottom = 8.dp),
+    )
 }
 
 @Composable

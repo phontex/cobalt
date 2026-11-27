@@ -90,21 +90,22 @@ class MainActivity : ComponentActivity() {
                 .fillMaxSize()
                 .background(c.background)
                 .safeDrawingPadding()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(start = 0.dp, end = 8.dp, top = 6.dp, bottom = 8.dp),
         ) {
-            BookSheet(modifier = Modifier.fillMaxSize()) {
-                BookRunningHeader(
-                    chapter = if (selectionMode) "Словарь · Правка строки" else "Словарь · Мои переводы",
-                    pageNumber = 1,
-                    totalPages = 1,
-                    onBack = { finish(); overridePendingTransition(R.anim.cobalt_enter_left, R.anim.cobalt_exit_right) },
-                )
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = 8.dp, bottom = 24.dp),
-                ) {
+            BookDeck {
+                BookSheet(modifier = Modifier.fillMaxSize()) {
+                    BookRunningHeader(
+                        chapter = if (selectionMode) "Перевод надписи" else "Словарь",
+                        pageNumber = 1,
+                        totalPages = 1,
+                        onBack = { finish(); overridePendingTransition(R.anim.cobalt_enter_left, R.anim.cobalt_exit_right) },
+                    )
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(top = 8.dp, bottom = 24.dp),
+                    ) {
                     SoftPageTitle(
                         title = if (selectionMode) "Перевод надписи" else "Словарь",
                         subtitle = if (selectionMode) "Измените запись и сохраните" else "Личный словарь переводов",
@@ -176,6 +177,7 @@ class MainActivity : ComponentActivity() {
 
                 SoftNote("Пользовательские переводы применяются при включённом русском шаблоне и имеют приоритет над встроенными.")
             }
+                    }
                 }
             }
         }
