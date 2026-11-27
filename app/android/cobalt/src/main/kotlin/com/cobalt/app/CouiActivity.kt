@@ -9,18 +9,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInVertically
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -33,18 +26,15 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
@@ -55,27 +45,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.graphics.drawable.toBitmap
@@ -83,6 +70,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.launch
 
 class CouiActivity : ComponentActivity() {
     private val appearance by lazy { getSharedPreferences("appearance", 0) }
@@ -90,12 +78,6 @@ class CouiActivity : ComponentActivity() {
     private var uiSize by mutableStateOf("normal")
     private var systemAmoled by mutableStateOf(false)
     private var colorMode by mutableStateOf("app")
-    private var hideLabels by mutableStateOf(false)
-    private var hideDividers by mutableStateOf(false)
-    private var iosStyle by mutableStateOf(false)
-    private var glassBar by mutableStateOf(false)
-    private var centeredTitle by mutableStateOf(false)
-    private var showProfileIcon by mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,14 +86,6 @@ class CouiActivity : ComponentActivity() {
         systemAmoled = appearance.getBoolean("system_amoled", false)
         colorMode = appearance.getString("color_mode", "app") ?: "app"
         uiSize = appearance.getString("ui_size", "normal") ?: "normal"
-        hideLabels = appearance.getBoolean("hide_labels", false)
-        hideDividers = appearance.getBoolean("hide_dividers", false)
-        iosStyle = appearance.getString("ui_style", "oppo") == "ios"
-        glassBar = appearance.getBoolean("glass", false)
-        centeredTitle = appearance.getString("profile_title_alignment", "left") == "center"
-        showProfileIcon = appearance.getBoolean("profile_show_icon", true)
-        // Local-only check: which bundled packages exist on this device. The result never
-        // leaves the device; the remote catalogue is matched against it, not the other way round.
         installedPackages = bundledProfiles.map { it.packageName }
             .filter { CobaltProfiles.installed(this, it) != null }
             .toSet()
@@ -124,30 +98,20 @@ class CouiActivity : ComponentActivity() {
                 size = uiSize,
                 systemAmoled = systemAmoled,
                 colorMode = colorMode,
-                hideDividers = hideDividers,
-                iosStyle = iosStyle,
-                glassBar = glassBar,
             ) { Root() }
         }
     }
 
-    private enum class Screen { HOME, APPS, ABOUT, PROFILE, SETTINGS, UPDATES }
+    private enum class Overlay { PROFILE, UPDATES }
 
-    /**
-     * Catalogue entries kept as the built-in fallback. The live list is filtered by what is
-     * actually installed and refreshed from the remote catalogue.
-     */
     private val bundledProfiles = listOf(
         SupportedProfile("Theme Store", "com.heytap.themestore"),
         SupportedProfile("Theme Basic", "com.oplus.themestore"),
     )
 
-    /** Packages the catalogue knows about, refreshed on every successful check. */
     private var knownPackages by mutableStateOf<List<String>>(emptyList())
-
     private var installedPackages by mutableStateOf<Set<String>>(emptySet())
 
-    /** Only applications that are both installed and known to the catalogue are shown. */
     private val supportedProfiles: List<SupportedProfile>
         get() = bundledProfiles.filter { profile ->
             profile.packageName in installedPackages &&
@@ -164,49 +128,37 @@ class CouiActivity : ComponentActivity() {
     private fun Root() {
         val c = LocalDesign.current
         val local = remember { getSharedPreferences("local", 0) }
-        val density = LocalDensity.current
-        // Rotation recreates the activity. Plain `remember` dropped the screen and sent
-        // the user back to the main page, so the route is saved and restored instead.
-        var tab by rememberSaveable { mutableIntStateOf(0) }
+        val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+        val scope = rememberCoroutineScope()
+
         var overlay by rememberSaveable(
-            stateSaver = Saver<Screen?, String>(
+            stateSaver = Saver<Overlay?, String>(
                 save = { it?.name ?: "" },
-                restore = { name -> if (name.isEmpty()) null else Screen.valueOf(name) },
+                restore = { name -> if (name.isEmpty()) null else Overlay.valueOf(name) },
             ),
-        ) { mutableStateOf<Screen?>(null) }
+        ) { mutableStateOf<Overlay?>(null) }
+
         var selectedPackage by rememberSaveable { mutableStateOf(ThemeStoreProfile.packageName) }
         var updateFocusPackage by rememberSaveable { mutableStateOf<String?>(null) }
         val selected = supportedProfiles.firstOrNull { it.packageName == selectedPackage } ?: ThemeStoreProfile
-        var barHeight by remember { mutableStateOf(0.dp) }
         var dictionaryVersion by remember { mutableIntStateOf(0) }
         var statusRefresh by remember { mutableIntStateOf(0) }
         var runtimeStatus by remember { mutableStateOf(CobaltRuntimeStatus.loading()) }
         val searchState = rememberTextFieldState()
 
-        /**
-         * Templates are Compose state, seeded from preferences once and written back on
-         * change. Reading SharedPreferences directly during composition meant the switch
-         * never re-rendered after a tap, even though the value had been saved.
-         */
         val templates = remember {
             mutableStateMapOf<String, String>().apply {
                 supportedProfiles.forEach { put(it.packageName, local.getString("template_${it.packageName}", "none") ?: "none") }
             }
         }
 
-        val route = overlay ?: when (tab) {
-            1 -> Screen.APPS
-            2 -> Screen.ABOUT
-            else -> Screen.HOME
-        }
         BackHandler(enabled = overlay != null) { overlay = null }
 
         LaunchedEffect(Unit) {
             val refreshed = CatalogRepository.refresh(this@CouiActivity)
             if (refreshed.catalog != null) knownPackages = refreshed.apps.map { it.packageName }
         }
-        // Keep the runtime status above the route switch. If it lived in StatusCard, navigating
-        // away disposed it and returning briefly showed a new CHECKING/INACTIVE message.
+
         LaunchedEffect(statusRefresh) {
             runtimeStatus = CobaltRuntimeChecker.check(this@CouiActivity)
         }
@@ -217,7 +169,6 @@ class CouiActivity : ComponentActivity() {
                 if (event == Lifecycle.Event.ON_RESUME) {
                     statusRefresh++
                     dictionaryVersion++
-                    // Preferences may have been changed by the editor activity.
                     supportedProfiles.forEach {
                         templates[it.packageName] = local.getString("template_${it.packageName}", "none") ?: "none"
                     }
@@ -227,141 +178,160 @@ class CouiActivity : ComponentActivity() {
             onDispose { owner.lifecycle.removeObserver(observer) }
         }
 
-        val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        val barInset: Dp = if (barHeight == 0.dp) 240.dp else barHeight + navInset + 116.dp
         val templateOf: (String) -> String = { templates[it] ?: "none" }
-        val scope = rememberCoroutineScope()
+        val chapters = listOf(
+            "I · Главная",
+            "II · Приложения",
+            "III · Оформление",
+            "IV · О проекте",
+        )
 
-        CompositionLocalProvider(LocalBarInset provides barInset) {
-            Box(Modifier.fillMaxSize().background(c.background)) {
-                AnimatedContent(
-                    targetState = route,
-                    label = "route",
-                    transitionSpec = {
-                        // Tabs cross-fade and lift; overlays slide in from the edge, because
-                        // they are a deeper level and the gesture has a direction.
-                        val ease = CubicBezierEasing(0.2f, 0f, 0f, 1f)
-                        val tabSwitch = initialState.ordinal < 3 && targetState.ordinal < 3
-                        if (tabSwitch) {
-                            // Tabs rise into place; the outgoing page simply fades, so the
-                            // two screens never look like they swap instantly.
-                            (fadeIn(tween(280, easing = ease)) +
-                                slideInVertically(tween(320, easing = ease)) { it / 30 } +
-                                scaleIn(initialScale = .98f, animationSpec = tween(320, easing = ease)))
-                                .togetherWith(fadeOut(tween(200, easing = ease)))
-                        } else {
-                            // Deeper level: horizontal slide with a visible distance.
-                            (fadeIn(tween(260, easing = ease)) +
-                                slideInHorizontally(tween(340, easing = ease)) { it / 6 })
-                                .togetherWith(
-                                    fadeOut(tween(160, easing = ease)) +
-                                        slideOutHorizontally(tween(300, easing = ease)) { -it / 9 },
-                                )
-                        }
-                    },
-                ) { screen ->
-                    when (screen) {
-                        Screen.HOME -> HomeScreen(
-                            onOpenApps = { tab = 1 },
-                            onOpenApp = { profile -> selectedPackage = profile.packageName; overlay = Screen.PROFILE },
-                            onOpenSettings = { overlay = Screen.SETTINGS },
-                            onOpenLogs = { openLogs() },
-                            templateOf = templateOf,
-                            status = runtimeStatus,
-                        )
-                        Screen.APPS -> AppsScreen(
-                            searchState = searchState,
-                            templateOf = templateOf,
-                            onOpenApp = { profile -> selectedPackage = profile.packageName; overlay = Screen.PROFILE },
-                        )
-                        Screen.ABOUT -> AboutScreen(version = versionName())
-                        Screen.PROFILE -> ProfileScreen(
-                            profile = selected,
-                            centered = centeredTitle,
-                            showIcon = showProfileIcon,
-                            template = templateOf(selected.packageName),
-                            onTemplate = { value ->
-                                templates[selected.packageName] = value
-                                local.edit(commit = true) { putString("template_${selected.packageName}", value) }
-                                // Tell the platform which role Cobalt takes for this package, so
-                                // it survives a reboot and stays inspectable in the log.
-                                scope.launch {
-                                    val identity = CobaltProfiles.installed(this@CouiActivity, selected.packageName)
-                                    if (identity != null) {
-                                        PlatformControl.configure(
-                                            context = this@CouiActivity,
-                                            packageName = selected.packageName,
-                                            versionName = identity.versionName,
-                                            versionCode = identity.versionCode,
-                                            features = if (value == "none") emptySet() else setOf("base"),
-                                        )
-                                    }
-                                }
-                                Toast.makeText(
-                                    this@CouiActivity,
-                                    if (value == "none") "Перевод для ${selected.label} выключен"
-                                    else "Шаблон включён. Перезапустите ${selected.label}",
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                            },
-                            onDictionary = { openEditor() },
-                            onOpenUpdates = { updateFocusPackage = selected.packageName; overlay = Screen.UPDATES },
-                            onBack = { overlay = null },
-                        )
-                        Screen.UPDATES -> Page(withBar = false) {
-                            UpdatesContent(
-                                context = this@CouiActivity,
-                                focusPackage = updateFocusPackage,
-                                onBack = { overlay = null; updateFocusPackage = null },
-                                onChanged = { dictionaryVersion++ },
+        CompositionLocalProvider(LocalBarInset provides 24.dp) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .background(c.background)
+                    .safeDrawingPadding()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    HorizontalPager(
+                        state = pagerState,
+                        beyondViewportPageCount = 1,
+                        modifier = Modifier.fillMaxSize(),
+                    ) { pageIndex ->
+                        val pageOffset = (pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction
+                        BookSheet(
+                            modifier = Modifier.fillMaxSize(),
+                            pageOffset = pageOffset,
+                        ) {
+                            BookRunningHeader(
+                                chapter = chapters[pageIndex],
+                                pageNumber = pageIndex + 1,
+                                totalPages = chapters.size,
                             )
+                            when (pageIndex) {
+                                0 -> HomeScreen(
+                                    onOpenApps = { scope.launch { pagerState.animateScrollToPage(1) } },
+                                    onOpenSettings = { scope.launch { pagerState.animateScrollToPage(2) } },
+                                    onOpenLogs = { openLogs() },
+                                    status = runtimeStatus,
+                                )
+                                1 -> AppsScreen(
+                                    searchState = searchState,
+                                    templateOf = templateOf,
+                                    onOpenApp = { profile ->
+                                        selectedPackage = profile.packageName
+                                        overlay = Overlay.PROFILE
+                                    },
+                                )
+                                2 -> SettingsScreen(
+                                    themeMode = themeMode,
+                                    colorMode = colorMode,
+                                    uiSize = uiSize,
+                                    systemAmoled = systemAmoled,
+                                    onTheme = { themeMode = it; appearance.edit { putString("theme_mode", it) } },
+                                    onColors = { colorMode = it; appearance.edit { putString("color_mode", it) } },
+                                    onSize = { uiSize = it; appearance.edit { putString("ui_size", it) } },
+                                    onSystemAmoled = { systemAmoled = it; appearance.edit { putBoolean("system_amoled", it) } },
+                                    onOpenUpdates = { updateFocusPackage = null; overlay = Overlay.UPDATES },
+                                    onUpdatesApplied = { dictionaryVersion++ },
+                                )
+                                3 -> AboutScreen(version = versionName())
+                            }
                         }
-                        Screen.SETTINGS -> SettingsScreen(
-                            themeMode = themeMode,
-                            colorMode = colorMode,
-                            uiSize = uiSize,
-                            systemAmoled = systemAmoled,
-                            hideLabels = hideLabels,
-                            hideDividers = hideDividers,
-                            iosStyle = iosStyle,
-                            glassBar = glassBar,
-                            centeredTitle = centeredTitle,
-                            showProfileIcon = showProfileIcon,
-                            onHideDividers = { hideDividers = it; appearance.edit { putBoolean("hide_dividers", it) } },
-                            onIosStyle = { iosStyle = it; appearance.edit { putString("ui_style", if (it) "ios" else "oppo") } },
-                            onGlass = { glassBar = it; appearance.edit { putBoolean("glass", it) } },
-                            onCenteredTitle = { centeredTitle = it; appearance.edit { putString("profile_title_alignment", if (it) "center" else "left") } },
-                            onShowProfileIcon = { showProfileIcon = it; appearance.edit { putBoolean("profile_show_icon", it) } },
-                            onTheme = { themeMode = it; appearance.edit { putString("theme_mode", it) } },
-                            onColors = { colorMode = it; appearance.edit { putString("color_mode", it) } },
-                            onSize = { uiSize = it; appearance.edit { putString("ui_size", it) } },
-                            onSystemAmoled = { systemAmoled = it; appearance.edit { putBoolean("system_amoled", it) } },
-                            onHideLabels = { hideLabels = it; appearance.edit { putBoolean("hide_labels", it) } },
-                            onOpenUpdates = { updateFocusPackage = null; overlay = Screen.UPDATES },
-                            onUpdatesApplied = { dictionaryVersion++ },
-                            onBack = { overlay = null },
-                        )
+                    }
+
+                    val ease = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
+                    AnimatedContent(
+                        targetState = overlay,
+                        label = "bookOverlay",
+                        transitionSpec = {
+                            (fadeIn(tween(240, easing = ease)) +
+                                slideInHorizontally(tween(340, easing = ease)) { it })
+                                .togetherWith(
+                                    fadeOut(tween(200, easing = ease)) +
+                                        slideOutHorizontally(tween(280, easing = ease)) { it },
+                                )
+                        },
+                    ) { activeOverlay ->
+                        when (activeOverlay) {
+                            Overlay.PROFILE -> BookSheet(
+                                modifier = Modifier.fillMaxSize(),
+                                pageOffset = 0f,
+                            ) {
+                                BookRunningHeader(
+                                    chapter = "Профиль · ${selected.label}",
+                                    pageNumber = 2,
+                                    totalPages = chapters.size,
+                                    onBack = { overlay = null },
+                                    trailing = { ProfileRestartAction(selected) },
+                                )
+                                ProfileScreen(
+                                    profile = selected,
+                                    template = templateOf(selected.packageName),
+                                    onTemplate = { value ->
+                                        templates[selected.packageName] = value
+                                        local.edit(commit = true) { putString("template_${selected.packageName}", value) }
+                                        scope.launch {
+                                            val identity = CobaltProfiles.installed(this@CouiActivity, selected.packageName)
+                                            if (identity != null) {
+                                                PlatformControl.configure(
+                                                    context = this@CouiActivity,
+                                                    packageName = selected.packageName,
+                                                    versionName = identity.versionName,
+                                                    versionCode = identity.versionCode,
+                                                    features = if (value == "none") emptySet() else setOf("base"),
+                                                )
+                                            }
+                                        }
+                                        Toast.makeText(
+                                            this@CouiActivity,
+                                            if (value == "none") "Перевод для ${selected.label} выключен"
+                                            else "Шаблон включён. Перезапустите ${selected.label}",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    },
+                                    onDictionary = { openEditor() },
+                                    onOpenUpdates = { updateFocusPackage = selected.packageName; overlay = Overlay.UPDATES },
+                                )
+                            }
+                            Overlay.UPDATES -> BookSheet(
+                                modifier = Modifier.fillMaxSize(),
+                                pageOffset = 0f,
+                            ) {
+                                BookRunningHeader(
+                                    chapter = "Каталог обновлений",
+                                    pageNumber = pagerState.currentPage + 1,
+                                    totalPages = chapters.size,
+                                    onBack = { overlay = null; updateFocusPackage = null },
+                                )
+                                BookLeaf {
+                                    UpdatesContent(
+                                        context = this@CouiActivity,
+                                        focusPackage = updateFocusPackage,
+                                        onBack = { overlay = null; updateFocusPackage = null },
+                                        onChanged = { dictionaryVersion++ },
+                                    )
+                                }
+                            }
+                            null -> Spacer(Modifier.size(0.dp))
+                        }
                     }
                 }
 
-
-                // Fade only: expanding/shrinking the bar made it jump on every navigation.
-                AnimatedVisibility(
-                    visible = overlay == null || overlay == Screen.PROFILE,
-                    enter = fadeIn(tween(180)),
-                    exit = fadeOut(tween(130)),
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                ) {
-                    SoftTabBar(
-                        labels = listOf("Главная", "Приложения", "О проекте"),
-                        icons = listOf(R.drawable.ic_phosphor_homefill, R.drawable.ic_phosphor_appsfill, R.drawable.ic_phosphor_infofill),
-                        selected = tab,
-                        hideLabels = hideLabels,
-                        modifier = Modifier
-                            .navigationBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .onSizeChanged { barHeight = with(density) { it.height.toDp() } },
-                    ) { overlay = null; tab = it }
+                Spacer(Modifier.height(10.dp))
+                BookRibbonBar(
+                    chapters = listOf(
+                        "I · Главная",
+                        "II · Прил.",
+                        "III · Вид",
+                        "IV · Инфо",
+                    ),
+                    selected = pagerState.currentPage,
+                ) { targetPage ->
+                    overlay = null
+                    scope.launch { pagerState.animateScrollToPage(targetPage) }
                 }
             }
         }
@@ -386,12 +356,12 @@ class CouiActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun Page(withBar: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+    private fun BookLeaf(content: @Composable ColumnScope.() -> Unit) {
         Column(
-            Modifier.fillMaxSize().safeDrawingPadding()
+            Modifier
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = SoftSpace.gutter)
-                .padding(top = 12.dp, bottom = if (withBar) LocalBarInset.current else 32.dp),
+                .padding(top = 8.dp, bottom = 24.dp),
             content = content,
         )
     }
@@ -472,14 +442,12 @@ class CouiActivity : ComponentActivity() {
     @Composable
     private fun HomeScreen(
         onOpenApps: () -> Unit,
-        onOpenApp: (SupportedProfile) -> Unit,
         onOpenSettings: () -> Unit,
         onOpenLogs: () -> Unit,
-        templateOf: (String) -> String,
         status: CobaltRuntimeStatus,
     ) {
         val c = LocalDesign.current
-        Page {
+        BookLeaf {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
                     Text("Cobalt", style = CobaltType.display, color = c.text)
@@ -500,13 +468,15 @@ class CouiActivity : ComponentActivity() {
                 SoftRow("Диагностика", "Журнал системных операций", onClick = onOpenLogs)
             }
 
-            SoftSectionTitle("Настройки")
+            SoftSectionTitle("Разделы книги")
             SoftGroup {
-                SoftRow("Оформление", "Тема, цвета и размер текста", onClick = onOpenSettings)
+                SoftRow("Приложения", "Профили и языковые слои ColorOS", onClick = onOpenApps)
+                SoftDivider()
+                SoftRow("Оформление", "Тема, акценты, размер текста и обновления", onClick = onOpenSettings)
             }
 
             SoftNote(
-                "Cobalt — независимый проект, не связанный с OPPO, OnePlus и Realme.",
+                "Листайте страницы свайпом или кнопками закладки внизу экрана.",
                 Modifier.padding(top = 22.dp),
             )
         }
@@ -558,7 +528,7 @@ class CouiActivity : ComponentActivity() {
     ) {
         val c = LocalDesign.current
         val query = searchState.text.toString()
-        Page {
+        BookLeaf {
             SoftPageTitle(title = "Приложения", subtitle = "Поддерживаемые приложения ColorOS")
             Spacer(Modifier.height(18.dp))
             SoftSearchField(searchState, "Поиск приложений")
@@ -597,7 +567,7 @@ class CouiActivity : ComponentActivity() {
     @Composable
     private fun AboutScreen(version: String) {
         val c = LocalDesign.current
-        Page {
+        BookLeaf {
             SoftPageTitle(title = "О проекте", eyebrow = "Cobalt")
 
             Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -636,8 +606,6 @@ class CouiActivity : ComponentActivity() {
                 )
             }
 
-
-
             SoftSectionTitle("Ограничения")
             SoftCard {
                 Text(
@@ -671,42 +639,27 @@ class CouiActivity : ComponentActivity() {
     @Composable
     private fun ProfileScreen(
         profile: SupportedProfile,
-        centered: Boolean,
-        showIcon: Boolean,
         template: String,
         onTemplate: (String) -> Unit,
         onDictionary: () -> Unit,
         onOpenUpdates: () -> Unit,
-        onBack: () -> Unit,
     ) {
         val c = LocalDesign.current
-        Page(withBar = true) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                SoftIconButton(onBack)
-                Spacer(Modifier.weight(1f))
-                ProfileRestartAction(profile)
-            }
-            Spacer(Modifier.height(18.dp))
+        BookLeaf {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = if (centered) Arrangement.Center else Arrangement.Start,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (showIcon) {
-                    AppIcon(profile.packageName, 52)
-                    Spacer(Modifier.width(14.dp))
-                }
-                Column(
-                    horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
-                    modifier = if (centered) Modifier else Modifier.weight(1f),
-                ) {
+                AppIcon(profile.packageName, 52)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
                     Text(
                         profile.label,
                         style = CobaltType.title,
                         color = c.text,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start,
                     )
                     Spacer(Modifier.height(4.dp))
                     PackageLine(profile.packageName)
@@ -716,7 +669,6 @@ class CouiActivity : ComponentActivity() {
                 purposeOf(profile.packageName),
                 style = CobaltType.body,
                 color = c.muted,
-                textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             )
 
@@ -804,34 +756,17 @@ class CouiActivity : ComponentActivity() {
         colorMode: String,
         uiSize: String,
         systemAmoled: Boolean,
-        hideLabels: Boolean,
-        hideDividers: Boolean,
-        iosStyle: Boolean,
-        glassBar: Boolean,
-        centeredTitle: Boolean,
-        showProfileIcon: Boolean,
-        onHideDividers: (Boolean) -> Unit,
-        onIosStyle: (Boolean) -> Unit,
-        onGlass: (Boolean) -> Unit,
-        onCenteredTitle: (Boolean) -> Unit,
-        onShowProfileIcon: (Boolean) -> Unit,
         onTheme: (String) -> Unit,
         onColors: (String) -> Unit,
         onSize: (String) -> Unit,
         onSystemAmoled: (Boolean) -> Unit,
-        onHideLabels: (Boolean) -> Unit,
         onOpenUpdates: () -> Unit,
         onUpdatesApplied: () -> Unit,
-        onBack: () -> Unit,
     ) {
         val c = LocalDesign.current
 
-        Page(withBar = false) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                SoftIconButton(onBack)
-            }
-            Spacer(Modifier.height(18.dp))
-            SoftPageTitle(title = "Оформление", subtitle = "Настройка внешнего вида приложения")
+        BookLeaf {
+            SoftPageTitle(title = "Оформление", subtitle = "Внешний вид книги и проверка обновлений")
 
             SoftSectionTitle("Тема")
             SoftGroup {
@@ -845,7 +780,7 @@ class CouiActivity : ComponentActivity() {
                 }
                 if (themeMode == "system") {
                     SoftDivider(start = 0.dp, end = 0.dp)
-                    SoftToggleRow("AMOLED в тёмной теме", "Чёрный фон вместо тёмно-серого", systemAmoled, onSystemAmoled)
+                    SoftToggleRow("AMOLED в тёмной теме", "Глубокий чёрный фон вместо тёмного переплёта", systemAmoled, onSystemAmoled)
                 }
             }
 
@@ -885,49 +820,13 @@ class CouiActivity : ComponentActivity() {
                     SoftWell {
                         Text("ColorOS на вашем языке", style = CobaltType.bodyStrong, color = c.text)
                         Text(
-                            "Так будет выглядеть текст в приложении.",
+                            "Так выглядит книжная вёрстка и типографика на страницах Cobalt.",
                             style = CobaltType.caption,
                             color = c.muted,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
                 }
-            }
-
-            SoftSectionTitle("Интерфейс")
-            SoftGroup {
-                SoftToggleRow("Подписи навигации", "Показывать только значки в нижней панели", hideLabels, onHideLabels)
-                SoftDivider(start = 0.dp, end = 0.dp)
-                SoftToggleRow("Эффект матового стекла", "Добавить полупрозрачность нижней панели", glassBar, onGlass)
-                SoftDivider(start = 0.dp, end = 0.dp)
-                SoftToggleRow("Скрыть разделители", "Скрыть линии между элементами", hideDividers, onHideDividers)
-                SoftDivider(start = 0.dp, end = 0.dp)
-                Column(Modifier.padding(SoftSpace.card)) {
-                    Text("Стиль переключателей", style = CobaltType.bodyStrong, color = c.text)
-                    Spacer(Modifier.height(12.dp))
-                    SoftSegmented(
-                        labels = listOf("ColorOS", "iOS"),
-                        selectedIndex = if (iosStyle) 1 else 0,
-                    ) { index -> onIosStyle(index == 1) }
-                    Spacer(Modifier.height(14.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            if (iosStyle) "Так выглядит переключатель iOS"
-                            else "Предпросмотр переключателя",
-                            style = CobaltType.caption,
-                            color = c.muted,
-                            modifier = Modifier.weight(1f),
-                        )
-                        CobaltSwitch(checked = true, onChange = {})
-                    }
-                }
-            }
-
-            SoftSectionTitle("Профиль приложения")
-            SoftGroup {
-                SoftToggleRow("Центрировать заголовок", "При отключении заголовок выравнивается слева", centeredTitle, onCenteredTitle)
-                SoftDivider(start = 0.dp, end = 0.dp)
-                SoftToggleRow("Значок рядом с названием", "Отображать иконку приложения в заголовке", showProfileIcon, onShowProfileIcon)
             }
 
             val updateScope = rememberCoroutineScope()
@@ -983,8 +882,8 @@ class CouiActivity : ComponentActivity() {
                 )
                 SoftDivider()
                 SoftRow(
-                    "История изменений",
-                    "Последние изменения переводов из GitHub",
+                    "История изменений переводов",
+                    "Последние изменения словарей и ресурсов из GitHub",
                     showChevron = false,
                     onClick = {
                         catalogChecking = true
@@ -1014,8 +913,7 @@ class CouiActivity : ComponentActivity() {
                     onPrimary = {
                         if (availableUpdate == null) {
                             appUpdateState = AppUpdateState.Idle
-                        } else if (!packageManager.canRequestPackageInstalls()
-                        ) {
+                        } else if (!packageManager.canRequestPackageInstalls()) {
                             startActivity(
                                 Intent(
                                     android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -1105,6 +1003,4 @@ class CouiActivity : ComponentActivity() {
         CobaltCheckState.UNKNOWN -> SoftTone.WARNING
         CobaltCheckState.CHECKING -> SoftTone.NEUTRAL
     }
-
-
 }

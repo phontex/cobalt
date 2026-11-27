@@ -1,7 +1,5 @@
 package com.cobalt.app
 
-import androidx.compose.ui.unit.round
-
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -21,6 +19,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -43,12 +43,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
@@ -60,27 +64,22 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlin.math.abs
 
-/**
- * Geometry. Every surface is built from these four radii; the radius stays smaller than
- * half the element's smallest side, so nothing turns into a pill by accident.
- */
 object SoftShape {
-    val card = RoundedCornerShape(22.dp)
-    val inner = RoundedCornerShape(16.dp)
-    val control = RoundedCornerShape(14.dp)
+    val page = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 22.dp, bottomEnd = 22.dp)
+    val card = RoundedCornerShape(16.dp)
+    val inner = RoundedCornerShape(12.dp)
+    val control = RoundedCornerShape(11.dp)
     val pill = RoundedCornerShape(percent = 50)
 }
 
-/**
- * Height the floating navigation bar occupies, including the system navigation inset.
- * Screens pad their scrollable content by this amount, so nothing hides behind the bar.
- */
-val LocalBarInset = staticCompositionLocalOf { 104.dp }
+val LocalBarInset = staticCompositionLocalOf { 96.dp }
 
-/** Long identifiers wrap at dots instead of being clipped at the edge. */
 fun breakableId(value: String): String = value.replace(".", ".\u200B")
 
 enum class CardTone { RAISED, FLAT, ACCENT }
@@ -89,20 +88,298 @@ enum class CardTone { RAISED, FLAT, ACCENT }
 private fun press(pressed: Boolean, to: Float = .985f): Float =
     animateFloatAsState(if (pressed) to else 1f, tween(120), label = "press").value
 
-/**
- * Shared interaction source for components that draw their own feedback.
- *
- * Every control passes `indication = null`: the theme's default indication is a spotlight
- * highlight that paints outside the element bounds, which made neighbouring rows and tabs
- * flash grey. Feedback here is explicit — a scale, a tint or a thumb shift.
- */
 @Composable
 private fun ownInteraction(): MutableInteractionSource = remember { MutableInteractionSource() }
 
-/**
- * A card is a tonal surface with a hairline outline; depth comes from lightness, not from
- * a shadow, so the same card reads correctly on ivory, graphite and true black.
- */
+private fun blend(base: Color, overlay: Color, fraction: Float): Color = Color(
+    red = base.red + (overlay.red - base.red) * fraction,
+    green = base.green + (overlay.green - base.green) * fraction,
+    blue = base.blue + (overlay.blue - base.blue) * fraction,
+    alpha = base.alpha,
+)
+
+private fun Color.faded(): Color = copy(alpha = 0f)
+
+fun Modifier.bookPageTurn(pageOffset: Float): Modifier = this
+    .zIndex(if (pageOffset >= 0f) 1f else 0f)
+    .graphicsLayer {
+        transformOrigin = TransformOrigin(0f, 0.5f)
+        cameraDistance = 18f * density
+        val clamped = pageOffset.coerceIn(-1f, 1f)
+        translationX = clamped * size.width
+        if (clamped > 0f) {
+            rotationY = -clamped * 94f
+            alpha = if (clamped > 0.78f) ((1f - clamped) / 0.22f).coerceIn(0f, 1f) else 1f
+        } else if (clamped < 0f) {
+            val reveal = 1f - abs(clamped)
+            val s = 0.965f + reveal * 0.035f
+            scaleX = s
+            scaleY = s
+        }
+    }
+    .drawWithContent {
+        drawContent()
+        val clamped = pageOffset.coerceIn(-1f, 1f)
+        if (clamped > 0f) {
+            val foldAlpha = (clamped * 0.28f).coerceIn(0f, 0.28f)
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = foldAlpha * 0.45f),
+                        Color.Transparent,
+                        Color.Black.copy(alpha = foldAlpha),
+                    ),
+                ),
+            )
+        } else if (clamped < 0f) {
+            val castAlpha = (abs(clamped) * 0.36f).coerceIn(0f, 0.36f)
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = castAlpha),
+                        Color.Black.copy(alpha = castAlpha * 0.35f),
+                        Color.Transparent,
+                    ),
+                ),
+            )
+        }
+    }
+
+@Composable
+fun BookSheet(
+    modifier: Modifier = Modifier,
+    pageOffset: Float = 0f,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val c = LocalDesign.current
+    val spineShade = if (c.dark) Color.Black.copy(alpha = 0.42f) else Color(0xFF1A1712).copy(alpha = 0.08f)
+    val stackEdge = blend(c.surface, c.line, 0.45f)
+
+    Box(
+        modifier
+            .fillMaxSize()
+            .padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 6.dp)
+            .bookPageTurn(pageOffset),
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(start = 6.dp, top = 5.dp, bottom = 5.dp)
+                .offset(x = 5.dp)
+                .clip(SoftShape.page)
+                .background(stackEdge)
+                .border(1.dp, c.line, SoftShape.page),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(start = 3.dp, top = 2.dp, bottom = 2.dp)
+                .offset(x = 2.5.dp)
+                .clip(SoftShape.page)
+                .background(blend(c.surface, c.line, 0.22f))
+                .border(1.dp, c.line, SoftShape.page),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .shadow(
+                    elevation = if (c.dark) 0.dp else 10.dp,
+                    shape = SoftShape.page,
+                    ambientColor = Color.Black.copy(alpha = 0.08f),
+                    spotColor = Color.Black.copy(alpha = 0.12f),
+                )
+                .clip(SoftShape.page)
+                .background(c.surface)
+                .border(1.dp, c.line, SoftShape.page)
+                .drawWithContent {
+                    drawContent()
+                    val spineWidth = 18.dp.toPx()
+                    drawRect(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(spineShade, Color.Transparent),
+                            startX = 0f,
+                            endX = spineWidth,
+                        ),
+                        size = Size(spineWidth, size.height),
+                    )
+                    val stitchX = 9.dp.toPx()
+                    drawLine(
+                        color = c.line.copy(alpha = if (c.dark) 0.65f else 0.9f),
+                        start = Offset(stitchX, 0f),
+                        end = Offset(stitchX, size.height),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                },
+        ) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(start = 18.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
+fun BookRunningHeader(
+    chapter: String,
+    pageNumber: Int,
+    totalPages: Int,
+    onBack: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val c = LocalDesign.current
+    Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                SoftIconButton(onClick = onBack)
+                Spacer(Modifier.width(10.dp))
+            }
+            Text(
+                chapter.uppercase(),
+                style = CobaltType.label,
+                color = c.faint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (trailing != null) {
+                trailing()
+                Spacer(Modifier.width(10.dp))
+            }
+            Text(
+                "Стр. %02d / %02d".format(pageNumber, totalPages),
+                style = CobaltType.monoSmall,
+                color = c.muted,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
+        Spacer(Modifier.height(2.dp))
+        Box(Modifier.fillMaxWidth().height(0.6.dp).background(c.line.copy(alpha = 0.55f)))
+    }
+}
+
+@Composable
+fun BookRibbonBar(
+    chapters: List<String>,
+    selected: Int,
+    modifier: Modifier = Modifier,
+    onSelect: (Int) -> Unit,
+) {
+    val c = LocalDesign.current
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .shadow(if (c.dark) 0.dp else 8.dp, shape, ambientColor = Color.Black.copy(alpha = .05f), spotColor = Color.Black.copy(alpha = .08f))
+            .clip(shape)
+            .background(c.surface)
+            .border(1.dp, c.line, shape)
+            .padding(horizontal = 6.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        BookFlipArrow(
+            text = "‹",
+            enabled = selected > 0,
+            onClick = { if (selected > 0) onSelect(selected - 1) },
+        )
+        chapters.forEachIndexed { index, label ->
+            val active = index == selected
+            val interaction = ownInteraction()
+            val pressed by interaction.collectIsPressedAsState()
+            val tone by animateColorAsState(
+                when {
+                    active -> c.accentSurface
+                    pressed -> c.well
+                    else -> c.accentSurface.faded()
+                },
+                tween(150),
+                label = "ribbonTone",
+            )
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(SoftShape.control)
+                    .background(tone)
+                    .then(if (active) Modifier.border(1.dp, c.accent.copy(alpha = if (c.dark) .4f else .22f), SoftShape.control) else Modifier)
+                    .selectable(
+                        selected = active,
+                        role = Role.Tab,
+                        interactionSource = interaction,
+                        indication = null,
+                        onClick = { onSelect(index) },
+                    )
+                    .padding(horizontal = 3.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                val parts = label.split(" · ", limit = 2)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (parts.size == 2) {
+                        Text(
+                            parts[0],
+                            style = CobaltType.label.copy(fontSize = 10.sp, lineHeight = 12.sp),
+                            color = if (active) c.accent else c.faint,
+                            maxLines = 1,
+                        )
+                        Text(
+                            parts[1],
+                            style = CobaltType.micro.copy(
+                                fontSize = 10.5.sp,
+                                lineHeight = 13.sp,
+                                fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
+                            ),
+                            color = if (active) c.accent else c.muted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        Text(
+                            label,
+                            style = CobaltType.micro.copy(fontWeight = if (active) FontWeight.W600 else FontWeight.W500),
+                            color = if (active) c.accent else c.muted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+        BookFlipArrow(
+            text = "›",
+            enabled = selected < chapters.lastIndex,
+            onClick = { if (selected < chapters.lastIndex) onSelect(selected + 1) },
+        )
+    }
+}
+
+@Composable
+private fun BookFlipArrow(text: String, enabled: Boolean, onClick: () -> Unit) {
+    val c = LocalDesign.current
+    val interaction = ownInteraction()
+    val pressed by interaction.collectIsPressedAsState()
+    Box(
+        Modifier
+            .size(34.dp, 38.dp)
+            .clip(SoftShape.control)
+            .background(if (pressed && enabled) c.well else Color.Transparent)
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text,
+            style = CobaltType.title.copy(fontSize = 18.sp),
+            color = if (enabled) c.text else c.line,
+        )
+    }
+}
+
 @Composable
 fun SoftCard(
     modifier: Modifier = Modifier,
@@ -117,16 +394,17 @@ fun SoftCard(
     val scale = press(pressed, .992f)
     val background by animateColorAsState(
         when (tone) {
-            CardTone.RAISED -> if (pressed && onClick != null) blend(c.surface, c.accent, if (c.dark) .06f else .03f) else c.surface
+            CardTone.RAISED -> if (pressed && onClick != null) blend(c.well, c.accent, if (c.dark) .08f else .04f) else c.well
             CardTone.FLAT -> c.well
             CardTone.ACCENT -> c.accentSurface
         },
         tween(140),
         label = "cardBg",
     )
-    val edge = if (tone == CardTone.ACCENT) c.accent.copy(alpha = if (c.dark) .26f else .16f) else c.line
+    val edge = if (tone == CardTone.ACCENT) c.accent.copy(alpha = if (c.dark) .28f else .18f) else c.line
     Column(
-        modifier.fillMaxWidth()
+        modifier
+            .fillMaxWidth()
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(SoftShape.card)
             .background(background)
@@ -141,47 +419,32 @@ fun SoftCard(
     )
 }
 
-/** Mixes [overlay] into [base] by [fraction]; used for press tints. */
-private fun blend(base: Color, overlay: Color, fraction: Float): Color = Color(
-    red = base.red + (overlay.red - base.red) * fraction,
-    green = base.green + (overlay.green - base.green) * fraction,
-    blue = base.blue + (overlay.blue - base.blue) * fraction,
-    alpha = base.alpha,
-)
-
-/** A list block: one surface, rows separated by hairlines. */
 @Composable
 fun SoftGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalDesign.current
     Column(
-        modifier.fillMaxWidth().clip(SoftShape.card).background(c.surface)
+        modifier
+            .fillMaxWidth()
+            .clip(SoftShape.card)
+            .background(c.well)
             .border(1.dp, c.line, SoftShape.card),
         content = content,
     )
 }
 
-/** Page header: eyebrow, large title, one line of support. Left aligned. */
 @Composable
 fun SoftPageTitle(title: String, subtitle: String? = null, eyebrow: String? = null) {
     val c = LocalDesign.current
-    Column(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp)) {
         if (eyebrow != null) {
-            Text(eyebrow.uppercase(), style = CobaltType.label, color = c.faint, modifier = Modifier.padding(bottom = 8.dp))
+            Text(eyebrow.uppercase(), style = CobaltType.label, color = c.faint, modifier = Modifier.padding(bottom = 6.dp))
         }
         Text(title, style = CobaltType.display, color = c.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
         if (subtitle != null) {
-            Text(subtitle, style = CobaltType.caption, color = c.muted, modifier = Modifier.padding(top = 6.dp))
+            Text(subtitle, style = CobaltType.caption, color = c.muted, modifier = Modifier.padding(top = 5.dp))
         }
     }
 }
-
-/**
- * Fading a tint towards [Color.Transparent] is not the same as fading it out: `Transparent`
- * is `Color(0x00000000)`, so a plain sRGB interpolation walks the colour through black and
- * the element flashes dark for the length of the animation. Every animated tint below fades
- * towards the same hue with zero alpha instead, which interpolates cleanly.
- */
-private fun Color.faded(): Color = copy(alpha = 0f)
 
 @Composable
 fun SoftIconButton(onClick: () -> Unit, icon: Int = R.drawable.ic_cobalt_back) {
@@ -191,12 +454,16 @@ fun SoftIconButton(onClick: () -> Unit, icon: Int = R.drawable.ic_cobalt_back) {
     val scale = press(pressed, .92f)
     val fill by animateColorAsState(if (pressed) c.well else c.well.faded(), tween(120), label = "iconBg")
     Box(
-        Modifier.size(42.dp).graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(SoftShape.control).background(fill).border(1.dp, c.line, SoftShape.control)
+        Modifier
+            .size(38.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(SoftShape.control)
+            .background(fill)
+            .border(1.dp, c.line, SoftShape.control)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(ImageVector.vectorResource(icon), null, tint = c.text, modifier = Modifier.size(17.dp))
+        Icon(ImageVector.vectorResource(icon), null, tint = c.text, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -222,8 +489,11 @@ fun SoftAction(
         label = "actionBg",
     )
     Box(
-        modifier.height(44.dp).graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(SoftShape.control).background(background)
+        modifier
+            .height(42.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(SoftShape.control)
+            .background(background)
             .then(if (!primary && enabled) Modifier.border(1.dp, c.line, SoftShape.control) else Modifier)
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -238,37 +508,35 @@ fun SoftAction(
             },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 18.dp),
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
 }
 
-/** Section eyebrow followed by a hairline that runs to the edge of the column. */
 @Composable
 fun SoftSectionTitle(text: String) {
     val c = LocalDesign.current
     Row(
-        Modifier.fillMaxWidth().padding(top = SoftSpace.section, bottom = 12.dp),
+        Modifier.fillMaxWidth().padding(top = SoftSpace.section, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Text("§", style = CobaltType.label, color = c.accent, modifier = Modifier.padding(end = 6.dp))
         Text(text.uppercase(), style = CobaltType.label, color = c.faint, maxLines = 1)
-        Box(Modifier.weight(1f).padding(start = 12.dp).height(1.dp).background(c.line))
+        Box(Modifier.weight(1f).padding(start = 10.dp).height(1.dp).background(c.line))
     }
 }
 
 @Composable
 fun SoftDivider(start: Dp = SoftSpace.card, end: Dp = SoftSpace.card) {
-    if (LocalHideDividers.current) return
     Box(
-        Modifier.padding(start = start, end = end).fillMaxWidth().height(1.dp)
+        Modifier
+            .padding(start = start, end = end)
+            .fillMaxWidth()
+            .height(1.dp)
             .background(LocalDesign.current.line),
     )
 }
 
-/**
- * List row. Press feedback is a tint confined to the row itself, so a tap never flashes
- * the rows around it.
- */
 @Composable
 fun SoftRow(
     title: String,
@@ -281,22 +549,23 @@ fun SoftRow(
     val c = LocalDesign.current
     val interaction = ownInteraction()
     val pressed by interaction.collectIsPressedAsState()
-    val rowTint = blend(c.surface, c.accent, if (c.dark) .08f else .04f)
+    val rowTint = blend(c.well, c.accent, if (c.dark) .08f else .04f)
     val fill by animateColorAsState(
         if (pressed && onClick != null) rowTint else rowTint.faded(),
         tween(120),
         label = "rowBg",
     )
     Row(
-        Modifier.fillMaxWidth()
+        Modifier
+            .fillMaxWidth()
             .background(fill)
             .then(
                 if (onClick != null) Modifier.clickable(
                     interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick,
                 ) else Modifier,
             )
-            .heightIn(min = if (summary == null) 54.dp else 66.dp)
-            .padding(horizontal = SoftSpace.card, vertical = 12.dp),
+            .heightIn(min = if (summary == null) 52.dp else 64.dp)
+            .padding(horizontal = SoftSpace.card, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leading != null) {
@@ -328,16 +597,6 @@ fun SoftRow(
     }
 }
 
-/**
- * Cobalt switch. Two variants share one geometry so the setting keeps its meaning while the
- * control stays native to Cobalt:
- *
- * - ColorOS: filled track with a hairline outline and a compact thumb.
- * - iOS: solid track without an outline and a larger thumb that sits closer to the edge.
- *
- * The thumb travels with a single eased animation, the track colour crossfades, and the
- * thumb dips slightly under the finger. The touch target is 52 × 48 dp in both variants.
- */
 @Composable
 fun CobaltSwitch(
     checked: Boolean,
@@ -346,10 +605,9 @@ fun CobaltSwitch(
     interactive: Boolean = true,
 ) {
     val c = LocalDesign.current
-    val ios = LocalIosStyle.current
     val trackWidth = 50.dp
     val trackHeight = 30.dp
-    val thumbSize = if (ios) 26.dp else 24.dp
+    val thumbSize = 24.dp
     val inset = (trackHeight - thumbSize) / 2
 
     val interaction = ownInteraction()
@@ -362,11 +620,7 @@ fun CobaltSwitch(
     )
     val thumbScale by animateFloatAsState(if (pressed) .9f else 1f, tween(110), label = "thumbScale")
     val trackColor by animateColorAsState(
-        when {
-            checked -> c.accent
-            ios -> c.line
-            else -> c.well
-        },
+        if (checked) c.accent else c.surface,
         tween(180),
         label = "trackColor",
     )
@@ -387,16 +641,15 @@ fun CobaltSwitch(
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            Modifier.size(trackWidth, trackHeight).clip(CircleShape).background(trackColor)
-                .then(
-                    if (!ios && !checked) Modifier.border(1.dp, c.line, CircleShape)
-                    else if (!ios && checked) Modifier.border(1.dp, Color.Transparent, CircleShape)
-                    else Modifier,
-                ),
+            Modifier
+                .size(trackWidth, trackHeight)
+                .clip(CircleShape)
+                .background(trackColor)
+                .border(1.dp, if (checked) Color.Transparent else c.line, CircleShape),
         ) {
             Box(
                 Modifier
-                    .offset { androidx.compose.ui.unit.IntOffset(offset.roundToPx(), inset.roundToPx()) }
+                    .offset { IntOffset(offset.roundToPx(), inset.roundToPx()) }
                     .size(thumbSize)
                     .graphicsLayer { scaleX = thumbScale; scaleY = thumbScale }
                     .shadow(if (c.dark) 0.dp else 2.dp, CircleShape, clip = false)
@@ -412,14 +665,16 @@ fun SoftToggleRow(title: String, summary: String? = null, checked: Boolean, onCh
     val c = LocalDesign.current
     val interaction = ownInteraction()
     val pressed by interaction.collectIsPressedAsState()
-    val rowTint = blend(c.surface, c.accent, if (c.dark) .08f else .04f)
+    val rowTint = blend(c.well, c.accent, if (c.dark) .08f else .04f)
     val fill by animateColorAsState(
         if (pressed) rowTint else rowTint.faded(),
         tween(120),
         label = "toggleRowBg",
     )
     Row(
-        Modifier.fillMaxWidth().background(fill)
+        Modifier
+            .fillMaxWidth()
+            .background(fill)
             .toggleable(
                 value = checked,
                 role = Role.Switch,
@@ -427,7 +682,7 @@ fun SoftToggleRow(title: String, summary: String? = null, checked: Boolean, onCh
                 indication = null,
                 onValueChange = onChange,
             )
-            .heightIn(min = if (summary == null) 54.dp else 66.dp)
+            .heightIn(min = if (summary == null) 52.dp else 64.dp)
             .padding(start = SoftSpace.card, end = 10.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -438,12 +693,10 @@ fun SoftToggleRow(title: String, summary: String? = null, checked: Boolean, onCh
             }
         }
         Spacer(Modifier.width(8.dp))
-        // The row owns the gesture, so the switch itself only paints state.
         CobaltSwitch(checked = checked, onChange = onChange, interactive = false)
     }
 }
 
-/** Chip used inside a group of mutually exclusive values. */
 @Composable
 fun SoftChip(
     label: String,
@@ -457,19 +710,23 @@ fun SoftChip(
     val bg by animateColorAsState(
         when {
             selected -> if (pressed) blend(c.accentSurface, c.accent, .10f) else c.accentSurface
-            pressed -> c.well
-            else -> c.accentSurface.faded()
+            pressed -> c.surface
+            else -> c.surface
         },
         tween(150),
         label = "chipBg",
     )
     val edge by animateColorAsState(
-        if (selected) c.accent.copy(alpha = if (c.dark) .5f else .32f) else c.line,
+        if (selected) c.accent.copy(alpha = if (c.dark) .5f else .35f) else c.line,
         tween(150),
         label = "chipEdge",
     )
     Box(
-        modifier.height(40.dp).clip(SoftShape.control).background(bg).border(1.dp, edge, SoftShape.control)
+        modifier
+            .height(38.dp)
+            .clip(SoftShape.control)
+            .background(bg)
+            .border(1.dp, edge, SoftShape.control)
             .selectable(
                 selected = selected,
                 role = Role.RadioButton,
@@ -477,12 +734,12 @@ fun SoftChip(
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = 13.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
-            style = CobaltType.caption.copy(fontWeight = if (selected) FontWeight.W500 else FontWeight.W400),
+            style = CobaltType.caption.copy(fontWeight = if (selected) FontWeight.W600 else FontWeight.W400),
             color = if (selected) c.accent else c.muted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -490,7 +747,6 @@ fun SoftChip(
     }
 }
 
-/** Wrapping selector: labels never truncate, so long Russian words stay readable. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SoftChoiceGroup(
@@ -503,7 +759,7 @@ fun SoftChoiceGroup(
     Column {
         Text(title, style = CobaltType.bodyStrong, color = c.text)
         FlowRow(
-            Modifier.padding(top = 12.dp),
+            Modifier.padding(top = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -514,7 +770,6 @@ fun SoftChoiceGroup(
     }
 }
 
-/** Segmented control for two or three short, mutually exclusive options. */
 @Composable
 fun SoftSegmented(
     labels: List<String>,
@@ -524,8 +779,12 @@ fun SoftSegmented(
 ) {
     val c = LocalDesign.current
     Row(
-        modifier.fillMaxWidth().clip(SoftShape.control).background(c.well)
-            .border(1.dp, c.line, SoftShape.control).padding(4.dp),
+        modifier
+            .fillMaxWidth()
+            .clip(SoftShape.control)
+            .background(c.surface)
+            .border(1.dp, c.line, SoftShape.control)
+            .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         labels.forEachIndexed { index, label ->
@@ -534,16 +793,20 @@ fun SoftSegmented(
             val pressed by interaction.collectIsPressedAsState()
             val bg by animateColorAsState(
                 when {
-                    active -> c.surface
-                    pressed -> blend(c.well, c.surface, .55f)
-                    else -> c.surface.faded()
+                    active -> c.accentSurface
+                    pressed -> c.well
+                    else -> c.accentSurface.faded()
                 },
                 tween(150),
                 label = "segBg",
             )
             Box(
-                Modifier.weight(1f).height(38.dp).clip(SoftShape.control).background(bg)
-                    .then(if (active) Modifier.border(1.dp, c.line, SoftShape.control) else Modifier)
+                Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(SoftShape.control)
+                    .background(bg)
+                    .then(if (active) Modifier.border(1.dp, c.accent.copy(alpha = if (c.dark) .4f else .24f), SoftShape.control) else Modifier)
                     .selectable(
                         selected = active,
                         role = Role.RadioButton,
@@ -555,8 +818,8 @@ fun SoftSegmented(
             ) {
                 Text(
                     label,
-                    style = CobaltType.caption.copy(fontWeight = if (active) FontWeight.W500 else FontWeight.W400),
-                    color = if (active) c.text else c.muted,
+                    style = CobaltType.caption.copy(fontWeight = if (active) FontWeight.W600 else FontWeight.W400),
+                    color = if (active) c.accent else c.muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -567,10 +830,15 @@ fun SoftSegmented(
 }
 
 @Composable
-fun SoftWell(contentPadding: PaddingValues = PaddingValues(14.dp), content: @Composable ColumnScope.() -> Unit) {
+fun SoftWell(contentPadding: PaddingValues = PaddingValues(13.dp), content: @Composable ColumnScope.() -> Unit) {
     val c = LocalDesign.current
     Column(
-        Modifier.fillMaxWidth().clip(SoftShape.inner).background(c.well).padding(contentPadding),
+        Modifier
+            .fillMaxWidth()
+            .clip(SoftShape.inner)
+            .background(c.surface)
+            .border(1.dp, c.line, SoftShape.inner)
+            .padding(contentPadding),
         content = content,
     )
 }
@@ -590,7 +858,9 @@ fun SoftBadge(tone: SoftTone, text: String) {
     val c = LocalDesign.current
     val tint = tone.color(c)
     Row(
-        Modifier.clip(SoftShape.pill).background(tint.copy(alpha = if (c.dark) .20f else .10f))
+        Modifier
+            .clip(SoftShape.pill)
+            .background(tint.copy(alpha = if (c.dark) .20f else .10f))
             .padding(horizontal = 9.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -599,13 +869,12 @@ fun SoftBadge(tone: SoftTone, text: String) {
     }
 }
 
-/** One status row: label on the left, indicator and value on the right. */
 @Composable
 fun SoftStatusLine(label: String, value: String, tone: SoftTone) {
     val c = LocalDesign.current
     val tint = tone.color(c)
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 42.dp).padding(vertical = 3.dp),
+        Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = CobaltType.body, color = c.text, modifier = Modifier.weight(1f))
@@ -620,13 +889,16 @@ fun SoftStatusLine(label: String, value: String, tone: SoftTone) {
     }
 }
 
-/** Search field with a clear button that appears only when there is text. */
 @Composable
 fun SoftSearchField(state: TextFieldState, placeholder: String = "Поиск") {
     val c = LocalDesign.current
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(SoftShape.control)
-            .background(c.surface).border(1.dp, c.line, SoftShape.control)
+        Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(SoftShape.control)
+            .background(c.well)
+            .border(1.dp, c.line, SoftShape.control)
             .padding(start = 14.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -646,8 +918,10 @@ fun SoftSearchField(state: TextFieldState, placeholder: String = "Поиск") {
             val interaction = ownInteraction()
             val pressed by interaction.collectIsPressedAsState()
             Box(
-                Modifier.size(40.dp).clip(CircleShape)
-                    .background(if (pressed) c.well else Color.Transparent)
+                Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(if (pressed) c.surface else Color.Transparent)
                     .clickable(interactionSource = interaction, indication = null, role = Role.Button) {
                         state.clearText()
                     }
@@ -660,91 +934,14 @@ fun SoftSearchField(state: TextFieldState, placeholder: String = "Поиск") {
     }
 }
 
-/**
- * Floating bottom bar: one raised surface with a single tinted marker for the current tab.
- * Each item tints only itself on press, so tapping one tab never flashes its neighbours.
- */
-@Composable
-fun SoftTabBar(
-    labels: List<String>,
-    icons: List<Int>,
-    selected: Int,
-    hideLabels: Boolean = false,
-    modifier: Modifier = Modifier,
-    onSelect: (Int) -> Unit,
-) {
-    val c = LocalDesign.current
-    val glass = LocalGlassBar.current
-    val shape = SoftShape.card
-    // The live shader was visually attractive but too expensive on long Compose pages: it
-    // re-recorded the whole backdrop during every scroll and route transition. Keep the same
-    // frosted language with a stable tonal surface and hairline; it remains visible on detail
-    // screens and does not steal frames from the page.
-    val fill = if (glass) {
-        if (c.dark) c.surface.copy(alpha = .94f) else c.surface.copy(alpha = .92f)
-    } else c.surface
-    Row(
-        modifier.fillMaxWidth()
-            .shadow(if (c.dark) 0.dp else 14.dp, shape, ambientColor = Color.Black.copy(alpha = .05f), spotColor = Color.Black.copy(alpha = .07f))
-            .clip(shape)
-            .background(fill)
-            .border(1.dp, if (glass) c.line.copy(alpha = .82f) else c.line, shape)
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        labels.forEachIndexed { index, label ->
-            val active = index == selected
-            val interaction = ownInteraction()
-            val pressed by interaction.collectIsPressedAsState()
-            val tone by animateColorAsState(
-                when {
-                    active -> c.accentSurface
-                    pressed -> c.well
-                    else -> c.accentSurface.faded()
-                },
-                tween(160),
-                label = "tabTone",
-            )
-            val itemScale by animateFloatAsState(if (pressed) .96f else 1f, tween(110), label = "tabScale")
-            Row(
-                Modifier.weight(1f).height(46.dp).graphicsLayer { scaleX = itemScale; scaleY = itemScale }
-                    .clip(SoftShape.inner).background(tone)
-                    .selectable(
-                        selected = active,
-                        role = Role.Tab,
-                        interactionSource = interaction,
-                        indication = null,
-                        onClick = { onSelect(index) },
-                    )
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    ImageVector.vectorResource(icons[index]), null,
-                    tint = if (active) c.accent else c.faint, modifier = Modifier.size(19.dp),
-                )
-                if (!hideLabels) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        label,
-                        style = CobaltType.micro.copy(letterSpacing = 0.sp),
-                        color = if (active) c.accent else c.muted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun SoftField(value: String, onValueChange: (String) -> Unit, label: String, minLines: Int = 1, limit: Int = 4096) {
     val c = LocalDesign.current
     Column(
-        Modifier.fillMaxWidth().clip(SoftShape.inner).background(c.well)
+        Modifier
+            .fillMaxWidth()
+            .clip(SoftShape.inner)
+            .background(c.well)
             .border(1.dp, c.line, SoftShape.inner)
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
@@ -766,7 +963,9 @@ fun SoftTextAction(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     val interaction = ownInteraction()
     val pressed by interaction.collectIsPressedAsState()
     Box(
-        Modifier.heightIn(min = 36.dp).clip(SoftShape.control)
+        Modifier
+            .heightIn(min = 36.dp)
+            .clip(SoftShape.control)
             .background(if (pressed && enabled) c.well else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 10.dp),
@@ -780,12 +979,12 @@ fun SoftTextAction(text: String, enabled: Boolean = true, onClick: () -> Unit) {
 fun SoftHeader(title: String, subtitle: String? = null, onBack: (() -> Unit)? = null) {
     val c = LocalDesign.current
     Row(
-        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
+        Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
             SoftIconButton(onClick = onBack)
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
         }
         Column(Modifier.weight(1f)) {
             Text(title, style = CobaltType.title, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -802,7 +1001,6 @@ fun SoftStatusDot(tone: SoftTone, size: Dp = 8.dp) {
     Box(Modifier.size(size).clip(CircleShape).background(tone.color(c)))
 }
 
-/** Small supporting paragraph under a block. */
 @Composable
 fun SoftNote(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -817,7 +1015,7 @@ fun SoftNote(text: String, modifier: Modifier = Modifier) {
 fun SoftKeyValue(label: String, value: String, mono: Boolean = false) {
     val c = LocalDesign.current
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 42.dp).padding(vertical = 9.dp),
+        Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = CobaltType.caption, color = c.muted, modifier = Modifier.weight(1f))

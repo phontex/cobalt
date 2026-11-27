@@ -66,9 +66,11 @@ class LogsActivity : ComponentActivity() {
         setContent {
             val appearance = remember { getSharedPreferences("appearance", 0) }
             DesignTheme(
-                this,
-                appearance.getString("theme_mode", "system") ?: "system",
-                appearance.getString("ui_size", "normal") ?: "normal",
+                activity = this,
+                mode = appearance.getString("theme_mode", "system") ?: "system",
+                size = appearance.getString("ui_size", "normal") ?: "normal",
+                systemAmoled = appearance.getBoolean("system_amoled", false),
+                colorMode = appearance.getString("color_mode", "app") ?: "app",
             ) { LogsScreen() }
         }
         refreshLogs()
@@ -176,17 +178,30 @@ class LogsActivity : ComponentActivity() {
         val retention = remember { mutableStateOf(diagnostics.getString("retention", "7d") ?: "7d") }
         val autoBackup = remember { mutableStateOf(diagnostics.getBoolean("auto_backup", false)) }
 
-        Column(
-            Modifier.fillMaxSize().background(c.background).safeDrawingPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = SoftSpace.gutter)
-                .padding(top = 12.dp, bottom = 32.dp),
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(c.background)
+                .safeDrawingPadding()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
-            SoftHeader(
-                title = "Диагностика",
-                subtitle = "События Cobalt Platform",
-                onBack = { finish(); overridePendingTransition(R.anim.cobalt_enter_left, R.anim.cobalt_exit_right) },
-            )
+            BookSheet(modifier = Modifier.fillMaxSize()) {
+                BookRunningHeader(
+                    chapter = "Диагностика · Cobalt Platform",
+                    pageNumber = 1,
+                    totalPages = 1,
+                    onBack = { finish(); overridePendingTransition(R.anim.cobalt_enter_left, R.anim.cobalt_exit_right) },
+                )
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 8.dp, bottom = 24.dp),
+                ) {
+                    SoftPageTitle(
+                        title = "Диагностика",
+                        subtitle = "События Cobalt Platform",
+                    )
 
             SoftSectionTitle("Журнал")
             SoftCard {
@@ -281,6 +296,8 @@ class LogsActivity : ComponentActivity() {
             SoftSectionTitle("Очистка")
             SoftGroup {
                 SoftRow("Очистить журнал", "Удалить platform.log", showChevron = false, onClick = { clearLog() })
+            }
+                }
             }
         }
     }

@@ -118,11 +118,11 @@ internal fun ColumnScope.UpdatesContent(
     }
 
     val focusName = focusPackage?.let { current?.catalog?.app(it)?.name }
-    SoftHeader(
+    SoftPageTitle(
         title = if (focusName == null) "Обновления" else "Обновления приложения",
         subtitle = focusName ?: "Переводы загружаются отдельно от приложения",
-        onBack = onBack,
     )
+    Spacer(Modifier.height(14.dp))
 
     SoftGroup {
         Row(

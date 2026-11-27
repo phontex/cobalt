@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -63,9 +64,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val appearance = remember { getSharedPreferences("appearance", 0) }
             DesignTheme(
-                this,
-                appearance.getString("theme_mode", "system") ?: "system",
-                appearance.getString("ui_size", "normal") ?: "normal",
+                activity = this,
+                mode = appearance.getString("theme_mode", "system") ?: "system",
+                size = appearance.getString("ui_size", "normal") ?: "normal",
+                systemAmoled = appearance.getBoolean("system_amoled", false),
+                colorMode = appearance.getString("color_mode", "app") ?: "app",
             ) { Editor() }
         }
     }
@@ -82,20 +85,30 @@ class MainActivity : ComponentActivity() {
         var selected by remember { mutableStateOf<String?>(null) }
         val count = remember(refresh) { DictionaryStore.count(context) }
 
-        Column(
-            Modifier.fillMaxSize().background(c.background).safeDrawingPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = SoftSpace.gutter)
-                .padding(top = 12.dp, bottom = 32.dp),
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(c.background)
+                .safeDrawingPadding()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                SoftIconButton(onClick = { finish(); overridePendingTransition(R.anim.cobalt_enter_left, R.anim.cobalt_exit_right) })
-            }
-            Spacer(Modifier.height(18.dp))
-            SoftPageTitle(
-                title = if (selectionMode) "Перевод надписи" else "Словарь",
-                subtitle = if (selectionMode) "Измените запись и сохраните" else "Личный словарь переводов",
-            )
+            BookSheet(modifier = Modifier.fillMaxSize()) {
+                BookRunningHeader(
+                    chapter = if (selectionMode) "Словарь · Правка строки" else "Словарь · Мои переводы",
+                    pageNumber = 1,
+                    totalPages = 1,
+                    onBack = { finish(); overridePendingTransition(R.anim.cobalt_enter_left, R.anim.cobalt_exit_right) },
+                )
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 8.dp, bottom = 24.dp),
+                ) {
+                    SoftPageTitle(
+                        title = if (selectionMode) "Перевод надписи" else "Словарь",
+                        subtitle = if (selectionMode) "Измените запись и сохраните" else "Личный словарь переводов",
+                    )
 
             SoftSectionTitle(if (selectionMode) "Надпись" else "Новый перевод")
             SoftCard {
@@ -162,6 +175,8 @@ class MainActivity : ComponentActivity() {
                 }
 
                 SoftNote("Пользовательские переводы применяются при включённом русском шаблоне и имеют приоритет над встроенными.")
+            }
+                }
             }
         }
 
